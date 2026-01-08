@@ -96,6 +96,45 @@ By migrating platform infrastructure to a global, versioned repository:
 
 ---
 
+## Global Session Management
+
+### Session Commands Are Global, Session State Is Project-Local
+
+**All projects use the same session management system**, but each project maintains its own session state:
+
+| Component | Location | Scope |
+|-----------|----------|-------|
+| **Commands** | `~/.claude/commands/` | ✅ GLOBAL (shared by all projects) |
+| **Session State** | `./.claude/SESSION.md` | ✅ PROJECT-LOCAL (per project) |
+
+**The Three Session Commands (All Global):**
+
+```bash
+/project:resume              # Load context from previous session
+/project:checkpoint          # Save progress mid-session
+/project:handoff            # Persist state before closing
+```
+
+**How It Works:**
+
+1. **Resume command** (Sonnet) reads `./.claude/SESSION.md` → Restores context
+2. **Checkpoint command** (Sonnet) writes to `./.claude/SESSION.md` → Saves progress
+3. **Handoff command** (Sonnet) writes to `./.claude/SESSION.md` → Prepares for next session
+
+**Why This Architecture:**
+
+- ✅ Same session logic across all projects (no duplication)
+- ✅ Each project's state is independent
+- ✅ Portable: new projects just copy `SESSION.md.template`
+- ✅ Versionable: global commands get improvements that benefit all projects
+- ✅ Simple: one command file that all projects use
+
+**Migration Note:**
+
+Session commands (`resume.md`, `checkpoint.md`, `handoff.md`) were migrated to global `~/.claude/` in January 2026 to ensure consistency and maintainability. No per-project duplication needed anymore.
+
+---
+
 ## Installation & Setup
 
 ### First-Time Setup
@@ -222,12 +261,14 @@ Comprehensive guide to the entire platform infrastructure (112KB). Covers:
   - Composite recovery procedures
   - Orphaned task cleanup
 
-#### Part 4: Session Management
-- **Session Continuity** commands
-  - `/project:resume` - Load context from previous session
-  - `/project:checkpoint` - Save progress mid-session
-  - `/project:handoff` - Persist state for next session
-  - Format: SESSION.md in standard YAML format
+#### Part 4: Session Management (GLOBAL)
+- **Session Continuity** commands (live in `~/.claude/commands/`, project-agnostic)
+  - `/project:resume` - Load context from `./.claude/SESSION.md` (project-local)
+  - `/project:checkpoint` - Save progress mid-session to `./.claude/SESSION.md`
+  - `/project:handoff` - Persist state for next session in `./.claude/SESSION.md`
+  - **Key Point:** Commands are GLOBAL but session state is PROJECT-LOCAL
+  - **Format:** SESSION.md in standard YAML format (template: `~/.claude/SESSION.md.template`)
+  - **Benefit:** All projects use same session logic, but maintain independent state
 
 #### Part 5: Shared Memory System
 - **Cross-IDE Communication** via `/shared-memory` command

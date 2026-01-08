@@ -707,22 +707,38 @@ raise NotFoundError(f"User not found: {user_id}")
 
 **Location:** `~/.claude/` - Reusable across ALL projects
 
-### Session Management Commands
+### Session Management Commands (GLOBAL)
 
-| Command | When | What It Does |
-|---------|------|--------------|
-| `/project:resume` | Session start | Load context from `./.claude/SESSION.md` (previous session) |
-| `/project:checkpoint` | Every 30-45 mins | Save progress mid-session WITHOUT stopping |
-| `/project:handoff` | Before stopping | Persist full state for next session |
+**Location:** `~/.claude/commands/` (Global, reusable across ALL projects)
 
-**Example:**
+These commands manage session state and continuity. They read/write to **project-local** `./.claude/SESSION.md` but the command implementations live globally.
+
+| Command | When | What It Does | Model |
+|---------|------|--------------|-------|
+| `/project:resume` | Session start | Load context from `./.claude/SESSION.md` (previous session) | Sonnet |
+| `/project:checkpoint` | Every 30-45 mins | Save progress mid-session WITHOUT stopping | Sonnet |
+| `/project:handoff` | Before stopping | Persist full state for next session | Sonnet |
+
+**Example Workflow:**
 ```bash
-/project:resume              # Load context
+# Session 1: Work and save progress
+/project:resume              # Load context from previous session
 # ... work for 30-45 mins
-/project:checkpoint         # Save progress, continue
+/project:checkpoint         # Save progress, continue working
 # ... more work
-/project:handoff            # Save state before stopping
+/project:handoff            # Save state before closing
+
+# Session 2: Next day
+/project:resume             # Restores context from ./.claude/SESSION.md
+# ... continue from where we left off
 ```
+
+**Key Points:**
+- ✅ Commands are **global** (in `~/.claude/commands/`)
+- ✅ State is **project-local** (in `./.claude/SESSION.md`)
+- ✅ All projects use the same session system
+- ✅ Each project maintains its own SESSION.md
+- ✅ Seamless context preservation across sessions
 
 ### Task Spawning & Crash Recovery Commands
 
@@ -835,13 +851,15 @@ See `~/.claude/PLATFORM_INFRASTRUCTURE.md` for comprehensive documentation of:
 
 ## Session Lifecycle (IMPORTANT)
 
-Claude Code sessions are stateless. Use these commands to maintain continuity:
+Claude Code sessions are stateless. Use these **global commands** to maintain continuity:
 
-| Command | When | Purpose |
-|---------|------|---------|
-| `/project:resume` | **Session start** | Load previous context |
-| `/project:checkpoint` | **Every 30-60 mins** | Save progress, verify patterns |
-| `/project:handoff` | **Before stopping** | Persist state for next session |
+| Command | When | Purpose | Location |
+|---------|------|---------|----------|
+| `/project:resume` | **Session start** | Load previous context from `./.claude/SESSION.md` | `~/.claude/commands/resume.md` |
+| `/project:checkpoint` | **Every 30-60 mins** | Save progress, verify patterns | `~/.claude/commands/checkpoint.md` |
+| `/project:handoff` | **Before stopping** | Persist state for next session | `~/.claude/commands/handoff.md` |
+
+**Note:** Commands are GLOBAL (in `~/.claude/`) but they read/write project-local state (`./.claude/SESSION.md`)
 
 ### Proactive Prompting Rules
 
