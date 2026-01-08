@@ -1,0 +1,92 @@
+# Session State Template
+
+> This is the standardized SESSION.md format used by all Claude Code projects.
+> Each project has its own instance, but follows this structure.
+
+## Last Updated
+YYYY-MM-DD HH:MM UTC
+
+## Branch
+`branch-name` (status: synced | ahead | diverged)
+
+## Current Focus
+**[Task Title]**
+
+Brief description of what you're currently working on.
+
+---
+
+## Active Spawned Task (if any)
+- Task ID: `task-XXXXXXXXX-XXXXX`
+- Model: `sonnet` | `haiku` | `opus`
+- Status: `active` | `done` | `crashed`
+- Branch: `feature/task-XXXXXXXXX-XXXXX`
+- Issue: `#NNN` (if branch-aware)
+
+**Purpose:**
+What this spawned task is doing and why.
+
+---
+
+## Completed This Session
+1. **Item 1** - Description
+2. **Item 2** - Description
+3. ...
+
+## Status
+✅ COMPLETE | 🟡 IN PROGRESS | ⏸️ BLOCKED
+
+## Next Steps
+1. **Step 1** - Description
+2. **Step 2** - Description
+3. ...
+
+## Blockers
+- None | Description of blocker
+
+---
+
+## Key Architectural Decisions
+**If this session introduced important decisions, document them here.**
+
+### Decision Name
+**Decision:** What decision was made
+**Rationale:** Why this decision was made
+**Files Affected:** Which files changed
+
+---
+
+## Files Modified This Session
+
+| File | Type | Change |
+|------|------|--------|
+| `path/to/file` | Created | Description |
+| `path/to/file` | Modified | Description |
+
+---
+
+## Git State
+```
+Branch: branch-name
+Commits ahead of origin: N (all pushed | not yet pushed)
+Working tree: clean | has changes
+
+Recent commits:
+- abc1234 commit message
+- def5678 commit message
+```
+
+---
+
+## For Next Session
+
+**Run:** `/project:resume`
+
+**Context to restore:**
+- What was completed
+- What's in progress
+- What comes next
+
+**Important files:**
+- `path/to/file` - Why this is important
+- `path/to/file` - Why this is important

@@ -1,0 +1,32 @@
+# System files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Backups
+*.bak
+*.backup
+
+# Debug/internal Claude Code files
+debug/
+file-history/
+cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node (if ever needed)
+node_modules/
+.pnpm-debug.log
+
+# Python (if ever needed)
+__pycache__/
+*.pyc
+.pytest_cache/
