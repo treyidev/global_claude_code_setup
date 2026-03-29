@@ -49,14 +49,14 @@ Task(
 
 **Example 1: /docs-build (model: sonnet)**
 ```
-Current: Haiku working on git operations
+Current: Sonnet working on git operations
 Encounter: /docs-build command
 Action: Task(model="sonnet", ...) → Sonnet takes over docs-build
 ```
 
 **Example 2: /project:commit (model: sonnet)**
 ```
-Current: Haiku checking file syntax
+Current: Sonnet checking file syntax
 Encounter: /project:commit command
 Action: Task(model="sonnet", ...) → Sonnet handles commit with analysis
 ```
@@ -160,6 +160,54 @@ def get_user(user_id: str) -> User:
     
     return user
 ```
+
+### Prefer AST Static Analysis Over Runtime Metadata
+
+When introspecting Python source (e.g., discovering classes defined in a file, listing functions, extracting imports), **always use `ast.parse()`** instead of runtime metadata like `__module__`, `__qualname__`, or `inspect.getfile()`.
+
+```python
+# ❌ WRONG - Runtime metadata is loader-dependent and unreliable
+def find_local_classes(module):
+    return [
+        name for name in dir(module)
+        if isinstance(getattr(module, name), type)
+        and getattr(getattr(module, name), "__module__", None) == module.__name__
+    ]
+
+# ✅ CORRECT - AST gives deterministic, loader-independent results
+import ast
+from pathlib import Path
+
+def get_defined_class_names(file_path: Path) -> set:
+    source = file_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+```
+
+**Why**: `__module__` depends on *how* the module was loaded (the `module_name` argument to `spec_from_file_location`). Dynamic loading with synthetic names makes it unreliable. AST parsing reads source text directly — deterministic, no side effects, no imports needed.
+
+**When to use AST**: Class/function discovery, import analysis, static validation.
+**When runtime is OK**: Type checking (`isinstance`), method resolution, actual class usage.
+
+### NEVER Use pip install — Use Poetry
+
+**All Python projects use Poetry for dependency management.** Never use `pip install` directly — it bypasses the lockfile, breaks reproducibility, and can corrupt the virtual environment.
+
+```bash
+# ❌ WRONG - Bypasses lockfile, breaks venv
+pip install -e ../../packages/shared/mgz_foundation
+pip install some-package
+
+# ✅ CORRECT - Poetry manages dependencies via lockfile
+poetry add some-package
+poetry add --group dev some-package
+poetry install                    # Install all deps from lockfile
+poetry lock                       # Regenerate lockfile
+```
+
+**Why**: Poetry's lockfile (`poetry.lock`) ensures deterministic installs across machines. `pip install` operates outside Poetry's dependency graph, leading to version conflicts and missing transitive dependencies.
+
+**For path dependencies** (local packages in monorepo): Declare them in `pyproject.toml` and use `poetry install`.
 
 ---
 
@@ -583,13 +631,13 @@ Co-Authored-By: Claude  # NEVER add this
 
 | Complexity | Model | Use For |
 |------------|-------|---------|
-| Low | Haiku | Git ops, `glab` commands, `gh` commands, scaffolding, rendering, formatting |
+| Low | Sonnet | Git ops, `glab` commands, `gh` commands, scaffolding, rendering, formatting |
 | Medium | Sonnet | Implementation, debugging, refactoring |
 | High | Opus | Architecture, design decisions, algorithms |
 
-**Note**: All GitLab (`glab`) and GitHub (`gh`) CLI operations should use Haiku - they're simple command execution, not complex reasoning.
+**Note**: All GitLab (`glab`) and GitHub (`gh`) CLI operations should use Sonnet - they're simple command execution, not complex reasoning.
 
-### ⚠️ CRITICAL: Haiku Delegation Rule (PERMANENT)
+### ⚠️ CRITICAL: Sonnet Delegation Rule (PERMANENT)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -597,9 +645,9 @@ Co-Authored-By: Claude  # NEVER add this
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ❌ FORBIDDEN: Bash(command="...")                                  │
-│  ✅ REQUIRED:  Task(model="haiku", subagent_type="Bash", ...)      │
+│  ✅ REQUIRED:  Task(model="sonnet", subagent_type="Bash", ...)     │
 │                                                                     │
-│  ALL shell commands MUST be delegated to Haiku via Task tool.      │
+│  ALL shell commands MUST be delegated to Sonnet via Task tool.     │
 │                                                                     │
 │  Applies to:                                                        │
 │  - Git operations (status, add, commit, push, pull, log, diff)     │
@@ -758,7 +806,7 @@ These commands manage session state and continuity. They read/write to **project
 
 # Optional: nest under parent task
 ./.claude/commands/task_spawn.sh \
-  --model "haiku" \
+  --model "sonnet" \
   --prompt "Subtask" \
   --parent-task "task-1234"
 ```

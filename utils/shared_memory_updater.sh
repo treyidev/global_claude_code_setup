@@ -1,6 +1,6 @@
 #!/bin/bash
 # .claude/commands/shared-memory/cmd.sh
-# Cross-session shared memory via YAML (Haiku runs this)
+# Cross-session shared memory via YAML (Sonnet runs this)
 # Requires: yq (Mike Farah version) - https://github.com/mikefarah/yq
 #
 # IMPORTANT: Always writes to MONOREPO ROOT's .claude/ directory
@@ -18,14 +18,10 @@
 
 set -e
 
-# CRITICAL: Anchor to git repository root for cross-session access
-GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-if [ -z "$GIT_ROOT" ]; then
-    echo "[X] Error: Not in a git repository"
-    exit 1
-fi
+# CRITICAL: Use global shared memory for cross-project access
+# Location: ~/.claude/shared_memory.yaml (not project-specific)
 
-CLAUDE_DIR="$GIT_ROOT/.claude"
+CLAUDE_DIR="$HOME/.claude"
 MEMORY_FILE="$CLAUDE_DIR/shared_memory.yaml"
 BACKUP_FILE="$CLAUDE_DIR/shared_memory.backup.yaml"
 
@@ -45,9 +41,9 @@ init_memory() {
     if [ ! -f "$MEMORY_FILE" ]; then
         local TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
         cat > "$MEMORY_FILE" << EOF
-# Shared Memory - Cross-session communication
-# Managed by /shared-memory command (Haiku)
-# Location: Always at monorepo root (.claude/shared_memory.yaml)
+# Shared Memory - Cross-session communication (GLOBAL)
+# Managed by /shared-memory command (Sonnet)
+# Location: Always at ~/.claude/shared_memory.yaml (global, cross-project)
 
 common:
   description: "Shared context across all sessions"

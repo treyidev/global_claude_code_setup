@@ -96,7 +96,7 @@ parse_args() {
         echo ""
         echo "Examples:"
         echo "  task_spawn.sh --model sonnet --prompt 'Refactor auth service'"
-        echo "  task_spawn.sh --model haiku --prompt 'Analyze code' --parent-task task-123 --branch-aware"
+        echo "  task_spawn.sh --model sonnet --prompt 'Analyze code' --parent-task task-123 --branch-aware"
         exit 1
     fi
 }

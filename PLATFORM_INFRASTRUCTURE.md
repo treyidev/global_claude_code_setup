@@ -502,7 +502,7 @@ Status field (active|done|discard) tracks lifecycle
 
 # Test task spawning
 ./.claude/commands/task_spawn.sh \
-  --model haiku \
+  --model sonnet \
   --prompt "Test simple spawn"
 
 # Test recovery detection

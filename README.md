@@ -219,8 +219,8 @@ The global Claude directives file containing universal standards for all project
 - **Language-Specific Standards**: Python, Kotlin, C++, Java with examples
 - **File Organization**: Domain-driven structure, forbidden file names
 - **Git Conventions**: Conventional commits format
-- **Model Selection**: When to use Haiku, Sonnet, or Opus
-- **Haiku Delegation Rule** (PERMANENT): ALL shell commands must delegate to Haiku via Task tool
+- **Model Selection**: When to use Sonnet or Opus
+- **Sonnet Delegation Rule** (PERMANENT): ALL shell commands must delegate to Sonnet via Task tool
 - **Code Review Stance**: When to push back on suggestions
 - **Exception Hierarchy**: Domain-specific exception patterns
 - **Global Custom Commands & Platform Infrastructure**: Session management, task spawning, shared memory
@@ -332,7 +332,7 @@ Spawns a new subtask as an independent Claude Code session with full context iso
   --prompt "Implement user authentication with Firebase"
 
 ~/.claude/commands/task_spawn.sh \
-  --model "haiku" \
+  --model "sonnet" \
   --prompt "Run tests and report results" \
   --branch-aware
 
@@ -664,26 +664,23 @@ model: sonnet
 2. **Check current instance**: "Am I Sonnet?"
 3. **Route appropriately**:
    - If `model: sonnet` and current = Sonnet → Execute directly
-   - If `model: sonnet` and current = Haiku → Delegate via Task(model="sonnet")
    - If `model: sonnet` and current = Opus → Delegate via Task(model="sonnet")
 
 ### Example
 
 ```
-Haiku working on git operations
+Sonnet working on git operations
    ↓
 Encounters: /project:docs-build command (has model: sonnet)
    ↓
-Haiku recognizes: "This requires Sonnet"
+Sonnet recognizes: model matches, execute directly
    ↓
-Haiku delegates: Task(model="sonnet", prompt="...docs-build command...")
-   ↓
-Sonnet takes over and completes the docs build
+Sonnet completes the docs build
 ```
 
 ### Why This Matters
 
-- **Correct model for the job**: Complex commands get Sonnet, simple ones get Haiku
+- **Correct model for the job**: Complex commands get Opus, standard ones get Sonnet
 - **Cost optimization**: Don't waste Opus on simple tasks
 - **Consistency**: Same command always uses same model
 - **Autonomy**: Commands own their complete workflows
