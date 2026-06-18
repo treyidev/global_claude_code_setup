@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(git:*)",
+      "Bash(glab:*)",
+      "Bash(poetry:*)",
+      "Bash(poetry run:*)",
+      "Bash(manim:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Read(//Users/abhijit/Projects/treyi/yt/math-gazers/**)",
+      "Bash(grep:*)",
+      "Bash(lsof:*)",
+      "WebFetch(domain:elevenlabs.io)"
+    ],
+    "deny": [
+      "Read(./.env*)",
+      "Read(**/secrets/**)",
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)"
+    ]
+  },
+  "model": "opus[1m]",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ruff check --fix $file && ruff format $file"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /Users/abhijit/.claude/hooks/inject_lang_rule.py"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true,
+    "figma@claude-plugins-official": true,
+    "vercel@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": true
+  },
+  "effortLevel": "max",
+  "switchModelsOnFlag": false
+}

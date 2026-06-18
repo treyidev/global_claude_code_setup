@@ -30,3 +30,37 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# ── Claude Code runtime state (per-machine/personal — never in this GitHub-mirrored repo) ──
+# TRACKED = the setup: CLAUDE.md, rules/, hooks/, commands/, reference/, utils/, settings.json.
+# IGNORED below = runtime / transcripts / telemetry / caches + machine-local overrides. Privacy
+# matters most for projects/ (session transcripts + auto-memory) and security/.
+
+# Session transcripts, per-project auto-memory, stray session state
+projects/
+sessions/
+SESSION.md
+
+# Plan-mode artifacts, IDE-integration runtime
+plans/
+ide/
+
+# Installed plugins — reinstalled from settings.json `enabledPlugins`, not versioned here
+plugins/
+
+# Caches, telemetry, security state, device ids (all regenerated)
+telemetry/
+security/
+shell-snapshots/
+history.jsonl
+*-cache.json
+mcp-needs-auth-cache.json
+security_warnings_state_*.json
+stats-cache.json
+.last-cleanup
+vercel-plugin-device-id
+vercel-plugin-telemetry-preference
+shared_memory.yaml
+
+# Machine-local settings overrides (personal; never shared)
+settings.local.json
