@@ -13,74 +13,24 @@
 
 ---
 
-## Custom Command Model Routing (CRITICAL - ENFORCE ALWAYS)
+## Custom Command / Skill Model Selection
 
-**MANDATORY: This rule applies to ALL Claude Code instances, regardless of current task.**
+Slash commands and skills live in `.claude/commands/*.md` (project + global); they are invoked
+via the **Skill tool** and run **in the main conversation**. Claude Code **honors a `model:`
+field in a command's frontmatter** — the command runs on that model automatically.
 
-When you encounter ANY custom command invocation (any `.claude/commands/*.md` or `.claude/commands/*.sh` file):
+**This supersedes the old "read the frontmatter, and if your model ≠ the command's, delegate via
+the `Task` tool" protocol** — that was a manual workaround for a prior setup and is now obsolete:
+you don't hand-route models per command, and there is no `subagent_type="Bash"`.
 
-### Protocol
-
-1. **Read the command file frontmatter** (YAML header at top of file)
-2. **Extract the `model:` field** (e.g., `model: sonnet`, `model: haiku`)
-3. **Check if current instance model matches** (e.g., "Am I Sonnet?" vs `model: sonnet`)
-
-### Routing Decision
-
-| Situation | Action |
-|-----------|--------|
-| Current model = `model:` field | Execute command directly in this instance |
-| Current model ≠ `model:` field | **Delegate via Task tool** |
-
-### Delegation Format
-
-If delegating to correct model:
-
-```
-Task(
-  model="<model_from_frontmatter>",
-  subagent_type="general-purpose",
-  description="<command description>",
-  prompt="<command instructions from file>"
-)
-```
-
-### Examples
-
-**Example 1: /docs-build (model: sonnet)**
-```
-Current: Sonnet working on git operations
-Encounter: /docs-build command
-Action: Task(model="sonnet", ...) → Sonnet takes over docs-build
-```
-
-**Example 2: /project:commit (model: sonnet)**
-```
-Current: Sonnet checking file syntax
-Encounter: /project:commit command
-Action: Task(model="sonnet", ...) → Sonnet handles commit with analysis
-```
-
-**Example 3: /project:resume (model: sonnet)**
-```
-Current: Sonnet building feature
-Encounter: /project:resume command
-Action: Execute directly (model matches) → Sonnet loads session context
-```
-
-### Why This Matters
-
-- **Commands own their workflows**: /docs-build is Sonnet because it needs semantic understanding
-- **Context preservation**: Correct model has right reasoning capability
-- **Cost optimization**: Don't waste Opus on simple tasks, don't skimp on complex ones
-- **Consistency**: Same command always uses same model, regardless of caller
-
-### CRITICAL ENFORCEMENT
-
-- ❌ DO NOT assume "I'll just run this since I'm here"
-- ✅ DO read frontmatter and route appropriately
-- ❌ DO NOT skip this because "it might work anyway"
-- ✅ DO enforce this 100% of the time - no exceptions
+- **Make a command run on a specific model:** set `model:` in its frontmatter — `model: sonnet`
+  for mechanical / scaffolding / git commands; `model: opus` for architecture / design /
+  algorithms. Keep the command body focused so it runs well on that tier.
+- **Offload a command's heavy or independent work to a cheaper model for cost:** use the
+  Agent/Task tool with a `model` override — same mechanism as *Delegating shell work to Sonnet*
+  (under Model Selection, below).
+- **Session-wide model control** is the harness's job (`/model`, fast mode), not per-command
+  delegation.
 
 ---
 
@@ -136,14 +86,14 @@ class UserService:
 | No global functions | `def create_grid():` | `class GridFactory:` |
 | No hardcoded values | `timeout=30` | `TIMEOUT_SECONDS = 30` |
 | No magic numbers | `if x > 86400:` | `if x > SECONDS_PER_DAY:` |
-| No star imports | `from typing import *` | `from typing import List, Dict` |
+| No star imports | `from typing import *` | `from typing import Any, Protocol` |
 | No circular deps | A imports B, B imports A | Unidirectional flow |
 | Fail-fast | `return None` on error | `raise ValueError(...)` |
 
 ### Fail-Fast Example
 ```python
 # WRONG - Silent failure
-def get_user(user_id: str) -> Optional[User]:
+def get_user(user_id: str) -> User | None:
     user = db.find(user_id)
     if not user:
         return None  # Caller doesn't know WHY
@@ -189,25 +139,25 @@ def get_defined_class_names(file_path: Path) -> set:
 **When to use AST**: Class/function discovery, import analysis, static validation.
 **When runtime is OK**: Type checking (`isinstance`), method resolution, actual class usage.
 
-### NEVER Use pip install — Use Poetry
+### NEVER Use pip install — Use uv
 
-**All Python projects use Poetry for dependency management.** Never use `pip install` directly — it bypasses the lockfile, breaks reproducibility, and can corrupt the virtual environment.
+**All Python projects use uv for dependency management.** Never use `pip install` directly — it bypasses the lockfile, breaks reproducibility, and can corrupt the virtual environment.
 
 ```bash
 # ❌ WRONG - Bypasses lockfile, breaks venv
 pip install -e ../../packages/shared/mgz_foundation
 pip install some-package
 
-# ✅ CORRECT - Poetry manages dependencies via lockfile
-poetry add some-package
-poetry add --group dev some-package
-poetry install                    # Install all deps from lockfile
-poetry lock                       # Regenerate lockfile
+# ✅ CORRECT - uv manages dependencies via lockfile
+uv add some-package
+uv add --dev some-package
+uv sync                           # Install all deps from lockfile
+uv lock                           # Regenerate lockfile
 ```
 
-**Why**: Poetry's lockfile (`poetry.lock`) ensures deterministic installs across machines. `pip install` operates outside Poetry's dependency graph, leading to version conflicts and missing transitive dependencies.
+**Why**: uv's lockfile (`uv.lock`) ensures deterministic installs across machines. `pip install` operates outside uv's dependency graph, leading to version conflicts and missing transitive dependencies.
 
-**For path dependencies** (local packages in monorepo): Declare them in `pyproject.toml` and use `poetry install`.
+**For path dependencies** (local packages in monorepo): Declare them in `pyproject.toml` and use `uv sync`.
 
 ---
 
@@ -246,7 +196,202 @@ class TypeMatcher:  # Worker does the filtering
 
 ---
 
+## Reuse-First Discipline (CRITICAL — ENFORCE BEFORE WRITING ANY NEW CLASS)
+
+**Before writing a new class, behavior, animation, component, utility, or service, audit
+the existing codebase for reusable infrastructure. Reuse maximally. If reuse forces a
+code smell or architectural degradation, FLAG IT to the user before proceeding — never
+silently invent a parallel hierarchy and never silently bend existing infrastructure to
+fit a wrong shape.**
+
+### The Three-Step Audit (mandatory, in this order)
+
+1. **Inventory the reusable surface.** Identify the conceptual slot the new code occupies
+   (e.g. "rhythmic scaling synced to a pulse"), then list every existing class/protocol
+   in the dependency-pointed-at packages (libraries, sibling packages, the package being
+   extended) that occupies that slot. Cite file paths.
+
+2. **Trace the integration path concretely.** For each candidate, write the import + call
+   that would integrate it. Read the candidate's source far enough to confirm:
+   - The protocol/contract surface it expects (methods, properties, types).
+   - Whether the target object already conforms (or trivially can — e.g. via inheritance).
+   - Whether composition is clean or requires conditional/`hasattr` branching.
+
+3. **Validate premises with code, not memory.** If the design hinges on a claim like
+   "the target doesn't have X", verify it from the current source — config files,
+   wirers, factories, defaults — not from prior conversations or assumptions. **A
+   wrong premise discovered after writing the code is a design bug; a wrong premise
+   caught during audit is a saved hour.**
+
+### Smell Detection — Flag Before Fixing
+
+The bar to flag is intentionally low. If the cleanest reuse path requires ANY of the
+following, stop and surface to the user before continuing:
+
+- A new `hasattr` / `isinstance` branch to dispatch around an interface mismatch.
+- A subclass that overrides 3+ methods just to change one semantic.
+- A string ↔ enum bridge in more than one place.
+- A monkey-patch or attribute injection on the imported class.
+- A workaround comment longer than three lines.
+- A "playground-side" class that duplicates the existing one's logic with worse semantics
+  to dodge a (real or imagined) collision.
+- A composition where the imported class's preconditions would be violated.
+
+**The flag is the deliverable.** Name the smell concretely, name the alternative concretely,
+ask which to take. Do not ship a silent workaround.
+
+### Quantify Before You Defend
+
+When proposing reuse vs. fresh-write, quantify the difference: lines of new code, classes
+added, surface area introduced, drift risk. "150 lines of new code becomes 80, all mechanics
+visuals-owned and battle-tested" is the right shape. "It's cleaner this way" is not.
+
+### When Fresh-Write IS Correct
+
+Reuse is the default, not the law. Writing a new class IS correct when:
+
+- The existing class's contract genuinely doesn't fit the target's anatomy (e.g.
+  `LookAt(pupil)` on a creature with no pupil — a real anatomical asymmetry).
+- The reuse path requires bending the imported class's preconditions.
+- A protocol can be conformed-to but the resulting object would be semantically wrong.
+
+In every such case, the decision still gets flagged so the user can confirm the
+asymmetry is intended.
+
+### Why This Matters
+
+- Every duplicated class is future drift waiting to happen — when the original evolves,
+  the duplicate ages out silently.
+- Every silent workaround is a comment-without-a-comment — the next reader can't tell
+  it was a deliberate choice vs. an accident.
+- Every wrong-premise design is debugging time spent later that could have been
+  five minutes of audit now.
+- Pattern discipline compounds: when reuse is the visible default, future contributors
+  follow the same discipline.
+
+---
+
+## Documentation Standards
+
+Universal documentation discipline that applies across every project, every language, every stack. Stack-specific tooling (linters, AST checks, examples) lives in each project's CLAUDE.md and **extends** these principles; this section is the source of truth.
+
+### Core principle
+
+- **Documentation captures context the code cannot express.** Code shows WHAT and HOW; documentation explains WHY, WHERE, WHEN.
+- **Three universal failure modes** to detect and reject:
+  1. **Structurally adequate, contextually empty** — every required field is present, none of them tells the reader anything they couldn't infer from the signature.
+  2. **WHAT-narration instead of WHY-explanation** — restating what the code does in English instead of explaining why it does it that way.
+  3. **Stale docs** — docstrings that once matched the code and silently drifted. Worse than no docs: actively misleading.
+
+### Universal content requirements
+
+**Module / file documentation** (any language):
+
+| Element | Required | Why |
+|---|---|---|
+| Why this exists | Always | Problem solved; rejected alternatives if non-obvious. |
+| Design decisions | Always | The reasoning behind structural choices that future maintainers will second-guess. |
+| Where it fits in the system | Always | Upstream / downstream / siblings. Spatial orientation for the reader. |
+| Limitations with mitigations | Always | Boundaries and recovery paths — not just "this doesn't do X" but "for X, use Y". |
+| Future evolution markers | Always for new modules | SAFE EXTENSIONS (where the design tolerates change) and REGRESSIONS TO AVOID (paths that look reasonable but would break the model). |
+
+**Class / type documentation:**
+
+| Element | Required | Why |
+|---|---|---|
+| Purpose / role | Always | What slot does this class occupy in the architecture? |
+| Lifecycle | Always | Instantiation, destruction, invariants between calls. |
+| Non-obvious design decisions | Always | Especially if rejected alternatives shaped the current shape. |
+| Realistic usage example | Always | One example readers can transplant, not synthetic. |
+
+**Function / method documentation:**
+
+| Element | Required | Why |
+|---|---|---|
+| Parameters / returns / errors | Always | Stack-appropriate idiom (Google docstring for Python, JSDoc/TSDoc for TypeScript, rustdoc, godoc, etc.). |
+| WHY this function exists | When not self-evident from signature | Names + types already say WHAT; reserve prose for WHY. |
+| Side effects | Always when present | I/O, mutation of arguments, global state — must be called out explicitly. |
+| Examples | For non-trivial functions | At least one realistic call site. |
+
+### Inline comment discipline
+
+**When required:**
+
+- **Subtle code** — explain WHY the subtlety exists.
+- **Logic for a specific bug or scenario** — note the scenario the code is defending against.
+- **Defensive checks for non-obvious failures** — note the failure mode the check guards.
+- **Magic values that can't become named constants** — explain the semantics inline.
+
+**When NOT required:**
+
+- **Self-explanatory code** — names + types already tell the reader.
+- **Restatements of type signatures** — adds noise without information.
+- **Section-header comments inside functions** — extract a named subfunction instead.
+
+### Universal anti-patterns
+
+- **Empty / missing module docstring.** A file with code but no module docs gives the next reader no orientation.
+- **Docstring restates the function name.** `def get_user(...): """Get user."""` — adds nothing.
+- **Docstring lists params without explaining them.** "Args: id: the id" — the type already says it's an id; the doc should say what an id is, where it comes from, what values are valid.
+- **Stale docstring that no longer matches code.** Once-accurate, now misleading. Periodic review catches these; reviewer skills surface them as MUST-FIX.
+- **"TODO: document this" placeholders.** Worse than no docstring — they advertise neglect.
+- **WHAT-narrating comments instead of WHY-explaining comments.** `# loop through items` next to a `for` loop. The code already says that.
+
+### Future-stack adoption discipline
+
+When ANY new language or technology is introduced to ANY project, the workstream adopting it **must** extend that project's CLAUDE.md with the stack's documentation tooling **before** significant code lands. Adopting a stack without documentation discipline is forbidden across all projects.
+
+Adoption checklist:
+
+1. Identify the language's standard documentation convention (Google docstring, JSDoc/TSDoc, rustdoc, godoc, etc.).
+2. Identify linting tools that enforce documentation structure (ruff D rules, eslint-plugin-jsdoc, rustdoc lints, etc.).
+3. Add stack-specific rules to the project's custom AST/style checks for content depth (beyond what generic linters cover).
+4. Update review skills (`/review-<stack>`) to include a Documentation severity dimension.
+5. Add stack-specific WRONG/CORRECT examples to the project's CLAUDE.md, using real files from that project.
+
+### Universal verification checklist
+
+Pre-commit language-agnostic items:
+
+- [ ] Every public function / method / class has documentation.
+- [ ] Module documentation includes WHY, WHERE-it-fits, LIMITATIONS-with-mitigations, FUTURE-EVOLUTION markers.
+- [ ] Class documentation includes purpose, lifecycle, at least one realistic example.
+- [ ] Function documentation explains WHY (not just WHAT) when the purpose isn't self-evident from signature.
+- [ ] Side effects documented explicitly.
+- [ ] Inline comments explain WHY, not WHAT.
+- [ ] No stale documentation (docstring matches code behavior).
+- [ ] No "TODO: document this" placeholders.
+- [ ] For new modules: SAFE EXTENSIONS and REGRESSIONS TO AVOID sections present.
+
+Project-specific tooling items (ruff D rules in Python, eslint-plugin-jsdoc rules in TypeScript, custom AST checks, etc.) live in the project's CLAUDE.md "Documentation Standards" section.
+
+### Review-skill integration
+
+Any review skill in any project (`/review-backend`, `/review-frontend`, future `/review-<stack>`) includes a Documentation severity dimension in its deviation reports. Categorization:
+
+| Severity | Pattern |
+|---|---|
+| **MUST-FIX** | Missing docs on a public API; missing a required section (WHY, lifecycle, side effects when present). |
+| **SHOULD-FIX** | WHAT-narration instead of WHY-explanation; missing context; missing limitations / mitigations. |
+| **CONSIDER** | Missing examples on a non-trivial function; missing future-evolution markers on a new module; missing teaching layer where one would help. |
+
+The principle is universal; the per-skill implementation in each project's CLAUDE.md cites these severity rules.
+
+### Tracked-deferral convention
+
+When a documentation rule must be deferred to a future commit:
+
+1. Add an inline disable using the project's stack-specific linter syntax.
+2. Use the project's convention for the inline marker text (e.g., `-- deferred; see TASKS.md` in mg-blocks).
+3. Add a backlog entry to the project's TASKS.md (or equivalent working memory) so the deferral is tracked, not silent.
+
+`--no-verify` is forbidden across all projects: violations are fix-or-defer-with-tracking, never bypass. The principle (fix-or-track-explicitly, never silent suppression) is universal; the syntax per stack lives in each project's CLAUDE.md.
+
+---
+
 ## Documentation Requirements
+
+> _Superseded by ## Documentation Standards above. Retained temporarily for Python-specific WRONG/INSUFFICIENT/REQUIRED examples until those migrate to project-local CLAUDE.md files. See TASKS.md follow-ups for cleanup tracking._
 
 | Element | Required | Notes |
 |---------|----------|-------|
@@ -268,7 +413,7 @@ def process(data):
 
 
 # ❌ INSUFFICIENT - Needs more detail
-def process(data: List[Item]) -> Result:
+def process(data: list[Item]) -> Result:
     """
     Process a list of items.
     
@@ -282,7 +427,7 @@ def process(data: List[Item]) -> Result:
 
 
 # ✅ REQUIRED - Minimum acceptable standard
-def process(data: List[Item], strict: bool = False) -> ProcessResult:
+def process(data: list[Item], strict: bool = False) -> ProcessResult:
     """
     Process items with optional strict validation.
 
@@ -341,26 +486,35 @@ def process(data: List[Item], strict: bool = False) -> ProcessResult:
 ## Python Standards
 
 ### Type Hints (Required)
-```python
-# CORRECT - Use typing module
-from typing import Any, Dict, List, Optional, Tuple, Union
 
+Use **modern builtin generics** (PEP 585, Python 3.9+) and the **`X | None` union** (PEP 604,
+3.10+). The collection generics (`list`, `dict`, `tuple`, `set`) and `|` are built in — import
+from `typing` only what has no builtin form (`Any`, `Protocol`, `TypeVar`, `Callable`,
+`ClassVar`, …). Add `from __future__ import annotations` when forward refs or heavy annotations
+warrant it.
+
+```python
+# ✅ CORRECT - builtin generics + `X | None`
 def process(
-    items: List[Item],
-    config: Optional[Config] = None,
+    items: list[Item],
+    config: Config | None = None,
 ) -> ProcessResult:
     ...
 
-# WRONG - Don't use builtin generics (enforce typing module)
-def process(items: list[Item], config: Config | None = None) -> ProcessResult:
-    ...  # NO!
+# ❌ WRONG - typing-module collection aliases / Optional (legacy, soft-deprecated since 3.9)
+from typing import Dict, List, Optional        # NO — use list/dict + `X | None`
+def process(items: List[Item], config: Optional[Config] = None) -> ProcessResult:
+    ...
+
+# ✅ Still imported from typing (no builtin form):
+from typing import Any, Protocol, TypeVar, Callable
 ```
 
 ### Imports (Explicit, Grouped, Sorted)
 ```python
 # Standard library
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Protocol   # only what has no builtin form (collections use list/dict/…)
 
 # Third-party
 from pydantic import BaseModel, Field
@@ -383,6 +537,41 @@ class User:
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
 ```
+
+### Visibility Tiers (Module-private / Package-private / Public)
+
+Three visibility tiers, signaled via naming + export:
+
+| Tier | Naming | In `__init__.py` re-exports? | When to use |
+| ---- | ------ | ---------------------------- | ----------- |
+| **Module-private** | `_Name` (leading underscore) | No | Used only within the defining module. The underscore signals "do not import from outside this file." |
+| **Package-private** | `Name` (no underscore) | No (NOT in `__init__.py`) | Used across modules in the same package; not part of the package's public API. Fine for sibling modules to import directly. |
+| **Public** | `Name` (no underscore) | Yes (in `__init__.py` `__all__` / re-exported) | Part of the package's public API. |
+
+**Why package-private exists**: A leading underscore on a Protocol or class used as a type hint in a public function's signature is awkward — callers see the hint but can't import it without violating the underscore convention. Package-private (no underscore, not exported) signals "implementation detail at the package level, not consumer-facing" without that import friction. Sibling modules in the same package can import it freely.
+
+**Docstring convention** for package-private classes: lead with "Package-private contract for X" / "Package-private helper for X" and state explicitly "not re-exported from the package's `__init__.py`." This tells future readers (including future-you) that the class is intentionally not in the public surface.
+
+```python
+# Module-private — only this file uses it
+class _InternalCacheKey:
+    """Module-private cache key helper — do not import from sibling modules."""
+
+# Package-private — sibling modules in the same package may import; not public API
+class FeelTarget(Protocol):
+    """Package-private contract for ``Feel``.
+
+    Not re-exported from the package's ``__init__.py``. Sibling modules
+    may import directly. Callers don't need to — Python's structural
+    typing applies it implicitly.
+    """
+
+# Public — exported from package's __init__.py
+class Feel(AnimationGroup):
+    """Animated emotion transition. Public API."""
+```
+
+**When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
 
 ---
 
@@ -637,37 +826,36 @@ Co-Authored-By: Claude  # NEVER add this
 
 **Note**: All GitLab (`glab`) and GitHub (`gh`) CLI operations should use Sonnet - they're simple command execution, not complex reasoning.
 
-### ⚠️ CRITICAL: Sonnet Delegation Rule (PERMANENT)
+### Delegating shell work to Sonnet (cost optimization)
 
+Running shell work on a **Sonnet subagent** is cheaper than inline Opus — the subagent runs on
+the cheaper model AND only its summary returns to the Opus context (large/verbose output never
+fills the expensive window). But spawning a subagent has fixed overhead, so delegate **by output
+size and independence, not by "it's a shell command."**
+
+**Mechanism (current Claude Code harness):** there is **no** `subagent_type="Bash"`. Delegate via
+the Agent/Task tool with a model override and a `general-purpose` subagent:
+
+```text
+Task(subagent_type="general-purpose", model="sonnet",
+     description="run the suite",
+     prompt="Run `pytest -q`; report pass/fail + any failures verbatim")
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  UNIVERSAL RULE FOR ALL PROJECTS - ALL MACHINES                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ❌ FORBIDDEN: Bash(command="...")                                  │
-│  ✅ REQUIRED:  Task(model="sonnet", subagent_type="Bash", ...)     │
-│                                                                     │
-│  ALL shell commands MUST be delegated to Sonnet via Task tool.     │
-│                                                                     │
-│  Applies to:                                                        │
-│  - Git operations (status, add, commit, push, pull, log, diff)     │
-│  - File operations (ls, find, cat, grep, head, tail)               │
-│  - Build operations (npm, pnpm, yarn, poetry, cargo, make)         │
-│  - Test operations (pytest, jest, vitest, cargo test)              │
-│  - Lint operations (eslint, ruff, clippy, prettier)                │
-│  - ANY shell command execution whatsoever                           │
-│                                                                     │
-│  Why this is mandatory:                                             │
-│  1. Keeps Opus context window clean (10x cost reduction)           │
-│  2. Follows documented model routing strategy                      │
-│  3. Consistent behavior across all projects                        │
-│  4. Enables proper cost optimization                               │
-│                                                                     │
-│  NO EXCEPTIONS. NO "QUICK COMMANDS". ALWAYS DELEGATE.              │
-│                                                                     │
-│  If you catch yourself using Bash tool: STOP and delegate.         │
-└─────────────────────────────────────────────────────────────────────┘
-```
+
+**Delegate to Sonnet when:**
+
+- The command yields **large/verbose output** you don't need word-for-word (test suites, builds,
+  broad `grep`/`find`, log scans) — the subagent runs it, digests it, and returns a summary.
+- The work is **independent and multi-step** and can run start-to-finish without Opus reasoning
+  between steps.
+
+**Run inline (Bash tool) when:**
+
+- It's a **quick, low-output command** (`git status`, `ls`, a single `git commit`, one file
+  check) — the subagent round-trip would cost *more* than just running it.
+- You need the **exact output** in the main context to decide the next step.
+
+When in doubt on a verbose or long-running command, delegate to Sonnet.
 
 ---
 
@@ -763,21 +951,21 @@ These commands manage session state and continuity. They read/write to **project
 
 | Command | When | What It Does | Model |
 |---------|------|--------------|-------|
-| `/project:resume` | Session start | Load context from `./.claude/SESSION.md` (previous session) | Sonnet |
-| `/project:checkpoint` | Every 30-45 mins | Save progress mid-session WITHOUT stopping | Sonnet |
-| `/project:handoff` | Before stopping | Persist full state for next session | Sonnet |
+| `/resume` | Session start | Load context from `./.claude/SESSION.md` (previous session) | Sonnet |
+| `/checkpoint` | Every 30-45 mins | Save progress mid-session WITHOUT stopping | Sonnet |
+| `/handoff` | Before stopping | Persist full state for next session | Sonnet |
 
 **Example Workflow:**
 ```bash
 # Session 1: Work and save progress
-/project:resume              # Load context from previous session
+/resume       # Load context from previous session
 # ... work for 30-45 mins
-/project:checkpoint         # Save progress, continue working
+/checkpoint   # Save progress, continue working
 # ... more work
-/project:handoff            # Save state before closing
+/handoff      # Save state before closing
 
 # Session 2: Next day
-/project:resume             # Restores context from ./.claude/SESSION.md
+/resume       # Restores context from ./.claude/SESSION.md
 # ... continue from where we left off
 ```
 
@@ -815,7 +1003,7 @@ These commands manage session state and continuity. They read/write to **project
 
 When Claude crashes during spawned task, run:
 ```bash
-/project:recover
+/task_recover
 ```
 
 This command:
@@ -903,39 +1091,66 @@ Claude Code sessions are stateless. Use these **global commands** to maintain co
 
 | Command | When | Purpose | Location |
 |---------|------|---------|----------|
-| `/project:resume` | **Session start** | Load previous context from `./.claude/SESSION.md` | `~/.claude/commands/resume.md` |
-| `/project:checkpoint` | **Every 30-60 mins** | Save progress, verify patterns | `~/.claude/commands/checkpoint.md` |
-| `/project:handoff` | **Before stopping** | Persist state for next session | `~/.claude/commands/handoff.md` |
+| `/resume` | **Session start** | Load previous context from `./.claude/SESSION.md` | `~/.claude/commands/resume.md` |
+| `/checkpoint` | **Every 30-60 mins** | Save progress, verify patterns | `~/.claude/commands/checkpoint.md` |
+| `/handoff` | **Before stopping** | Persist state for next session | `~/.claude/commands/handoff.md` |
 
 **Note:** Commands are GLOBAL (in `~/.claude/`) but they read/write project-local state (`./.claude/SESSION.md`)
 
 ### Proactive Prompting Rules
 
 **At session start** (no prior context visible):
-- If `.claude/SESSION.md` exists but hasn't been mentioned → Suggest: "I see a SESSION.md from a previous session. Would you like me to `/project:resume` to restore context?"
+- If `.claude/SESSION.md` exists but hasn't been mentioned → Suggest: "I see a SESSION.md from a previous session. Would you like me to `/resume` to restore context?"
 - If starting fresh with no context → Ask: "What would you like to work on today?"
 
 **During extended work** (after ~30-45 minutes of continuous work):
-- Suggest: "We've been working for a while. Would you like to `/project:checkpoint` to save progress?"
+- Suggest: "We've been working for a while. Would you like to `/checkpoint` to save progress?"
 
-**At natural milestones** (feature complete, tests passing, ready to commit):
-- Suggest: "Good milestone reached. Consider `/project:checkpoint` before continuing."
+**Post-commit checkpoint judgment**: After every successful `git commit` that becomes visible to the assistant in the current session — whether the assistant invoked it directly, the user invoked it after assistant-staged work, or the user committed independently — evaluate whether SESSION.md needs an update.
+
+This is a manual discipline applied by the assistant on every commit — NOT an automated hook. No `PostToolUse` binding for `Bash(git commit*)` exists in `~/.claude/settings.json`; earlier prose in `~/.claude/commands/checkpoint.md` describing a "post-commit auto-trigger" was aspirational and has been corrected. The discipline lives here, in this rule, applied by the assistant proactively without waiting for a prompt.
+
+**Marker semantics**:
+
+- `.claude/auto-checkpoint` present in the repo → apply the judgment after **every** successful commit (most should NO-OP).
+- `.claude/auto-checkpoint` absent → apply the judgment only on manual `/checkpoint` invocations; suggest checkpoint at natural milestones (phase completions, architectural decisions, before `/clear` or `/compact`).
+
+**Judgment criteria** (full version in `~/.claude/commands/checkpoint.md`):
+
+Ask: *"What did we learn or decide in this commit that future sessions need to know that they would not get from `git log` and the current code?"*
+
+- **Mechanical commit** (lint fixes, formatting, typo corrections, dependency bumps, routine refactors that execute a previously-decided plan, small docs touches) → **NO-OP**. Surface the no-op explicitly so absence-of-update is visible:
+
+  ```text
+  ✓ Checkpoint no-op at [timestamp]
+  Nothing notable since last update — leaving SESSION.md unchanged.
+  ```
+
+- **Substantive commit** (architectural decisions resolved, unexpected verification results, productive pushback that refined the approach, phase completions, work-thread pivots, near-misses with signal) → **UPDATE**. Refresh `.claude/SESSION.md` in place per canonical shape (single snapshot, overwrite): Last Updated, Branch, Current Focus, Status, Completed This Session, In Progress, Next Steps, Blockers, Key Decisions. Update `.claude/TASKS.md` only if the backlog actually changed. Surface:
+
+  ```text
+  ✓ Checkpoint saved at [timestamp]
+  Updated: SESSION.md [+ TASKS.md if applicable]
+  Reason: [one-line summary of what changed in understanding]
+  ```
+
+If unsure between mechanical and substantive, lean toward NO-OP. A stale SESSION.md is worse than an absent update.
 
 **When user says goodbye/stopping/break/lunch/EOD**:
-- Prompt: "Before you go, let me run `/project:handoff` to save our progress for next time."
+- Prompt: "Before you go, let me run `/handoff` to save our progress for next time."
 - If user declines, respect it but note: "No problem. Note that context may be lost without handoff."
 
 **When context seems unclear** (user asks "where were we?" or Claude is uncertain):
-- Suggest: "Let me check `.claude/SESSION.md` for context" or "Would `/project:resume` help restore context?"
+- Suggest: "Let me check `.claude/SESSION.md` for context" or "Would `/resume` help restore context?"
 
 **When detecting pattern drift** (own code violating CLAUDE.md rules):
-- Self-correct and suggest: "I notice I may have drifted from patterns. Running a mental `/project:checkpoint` to realign."
+- Self-correct and suggest: "I notice I may have drifted from patterns. Running a mental `/checkpoint` to realign."
 
 ### Session Files
 
 | File | Purpose |
 |------|---------|
-| `.claude/SESSION.md` | Handoff state (written by `/project:handoff`) |
+| `.claude/SESSION.md` | Handoff state (written by `/handoff`) |
 | `.claude/JOURNAL.md` | Historical log (optional, append-only) |
 
 ### Never Assume Prior Context
@@ -958,7 +1173,7 @@ Unless SESSION.md has been read or user provides context, assume this is a fresh
 
 When completing any feature:
 
-1. **Before MR**: Run `/project:sync-docs`
+1. **Before MR**: Run `/sync-docs`
 2. **In commit**: Include CLAUDE.md updates in same commit as code
 3. **In MR description**: Note what documentation was updated
 
