@@ -63,3 +63,27 @@ User getUser(const std::string& id);  // Throws if not found
 // ✅ CORRECT - noexcept where guaranteed
 void swap(User& a, User& b) noexcept;
 ```
+
+## Includes (Grouped, Explicit)
+```cpp
+// ✅ CORRECT - std headers, then project headers
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "project/domain/user.hpp"
+#include "project/repository/user_repository.hpp"
+
+// ❌ NEVER
+#include <bits/stdc++.h>  // non-portable; pulls in the entire stdlib
+```
+
+## Type clarity (`auto` judiciously)
+```cpp
+// ✅ CORRECT - explicit where the type matters; auto where it aids readability
+std::vector<User> users;
+auto it = configs.find(key);   // auto OK — type is obvious from context
+
+// ❌ WRONG - auto that obscures the type
+auto x = getValue();           // what is x?
+```

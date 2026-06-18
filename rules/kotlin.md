@@ -62,3 +62,15 @@ suspend fun fetchData(): Data = coroutineScope {
 // ❌ WRONG - GlobalScope (unstructured)
 GlobalScope.launch { ... }  // NO! Use structured scope
 ```
+
+## Imports (Explicit, Grouped)
+```kotlin
+// ✅ CORRECT - third-party then local; explicit
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+
+import com.example.domain.User
+
+// DISCOURAGED (looser convention than other languages, but prefer explicit)
+import kotlinx.coroutines.*
+```

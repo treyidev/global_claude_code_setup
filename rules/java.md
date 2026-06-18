@@ -83,3 +83,22 @@ public class UserService {
     private UserRepository repository;  // Harder to test
 }
 ```
+
+## Imports & Generics
+```java
+// ✅ CORRECT - explicit imports, grouped (java / third-party / local); no star
+import java.util.List;
+import java.util.Optional;
+
+import com.example.domain.User;
+
+// ❌ WRONG
+import java.util.*;            // NO — explicit only
+
+// ✅ CORRECT - parameterized generics, never raw types
+List<User> users = new ArrayList<>();
+Map<String, Config> configs = new HashMap<>();
+
+// ❌ WRONG - raw types
+List users = new ArrayList();  // NO!
+```

@@ -227,3 +227,56 @@ def process(data: list[Item], strict: bool = False) -> ProcessResult:
 ```
 
 → More templates: `~/.claude/reference/documentation-standards.md`
+
+## Data classes & value objects
+
+Immutable value objects are `@dataclass(frozen=True, slots=True)` — frozen for hashability +
+safety, slots for memory. (DTOs crossing an external boundary are Pydantic models — see the
+backend rules where applicable.)
+
+```python
+from dataclasses import dataclass
+
+@dataclass(frozen=True, slots=True)
+class Coordinate:
+    """Immutable 2D coordinate. Frozen for hashability; slots for memory efficiency."""
+    x: float
+    y: float
+
+    def distance_to(self, other: "Coordinate") -> float:
+        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+```
+
+## Idiomatic: factory with auto-registration (Open/Closed)
+
+Extend by *registering*, not by editing a dispatch ladder. A class registers itself via a
+decorator; the factory resolves by key — new variants never touch the factory. (House pattern;
+see `math-gazers` component registries.)
+
+```python
+from typing import ClassVar
+
+class ConverterFactory:
+    """Factory with automatic registration via decorators."""
+
+    _registry: ClassVar[dict[str, type]] = {}   # builtin generics (PEP 585)
+
+    @classmethod
+    def register(cls, *providers: str):
+        """Register a converter for one or more providers."""
+        def decorator(converter_cls: type) -> type:
+            for provider in providers:
+                cls._registry[provider.lower()] = converter_cls
+            return converter_cls
+        return decorator
+
+    @classmethod
+    def create(cls, provider: str) -> "Converter":
+        converter_cls = cls._registry.get(provider.lower())
+        if converter_cls is None:
+            raise ValueError(f"Unknown provider: {provider}")   # fail-fast
+        return converter_cls()
+
+@ConverterFactory.register("edge", "azure")
+class SSMLConverter(Converter): ...
+```
