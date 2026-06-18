@@ -1,53 +1,132 @@
 ---
 model: sonnet
 allowed-tools: Read, Write, Bash(git:*)
-description: Save current progress mid-session
+description: Save current progress when state has meaningfully changed
 ---
 
 # Checkpoint Current Progress
 
-Save session state without ending the session.
+Save session state — when there is something meaningful to save. Most
+invocations should be no-ops; the bar is whether future sessions need
+to know something they would not get from `git log` and the current code.
+
+## When to run
+
+Two invocation paths:
+
+1. **Manual.** User invokes `/checkpoint` directly. Run the full
+   judgment below.
+
+2. **Post-commit.** After every successful `git commit`, when the
+   project's `.claude/auto-checkpoint` marker is present, the
+   assistant applies the same judgment per the global rule in
+   `~/.claude/CLAUDE.md` under "Post-commit checkpoint judgment"
+   (within Proactive Prompting Rules). Most commits no-op.
+
+   This is a manual discipline applied by the assistant
+   proactively, NOT a runtime trigger. No `PostToolUse` hook in
+   `~/.claude/settings.json` binds `Bash(git commit*)` to this
+   skill; earlier wording in this file describing a "post-commit
+   auto-trigger" was aspirational. The discipline lives in the
+   global rule; this skill provides the judgment criteria and the
+   SESSION.md shape that the rule applies.
+
+Projects opt in by creating an empty `.claude/auto-checkpoint`
+file. Absent that file, only manual `/checkpoint` invocations
+trigger the judgment.
 
 ## Context
 - Branch: !`git branch --show-current`
 - Status: !`git status --short`
+- Triggering commit: !`git log --oneline -1`
+- Recent context (last 5): !`git log --oneline -5`
 - Time: !`date "+%Y-%m-%d %H:%M"`
+- Auto-trigger active: !`test -f .claude/auto-checkpoint && echo yes || echo no`
+
+## Judgment: does this checkpoint warrant an update?
+
+Ask: **"what did we learn or decide that future sessions need to know?"**
+If the honest answer is "nothing notable — this was mechanical execution
+of a previously-decided plan," produce no update and exit with a no-op
+confirmation.
+
+**When auto-triggered, evaluate against the triggering commit specifically.**
+Earlier commits in "Recent context" are context, not subject. The question
+"did this commit change what future sessions need to know?" is about
+the triggering commit, not the last five.
+
+**Signals worth checkpointing:**
+
+- Architectural decisions resolved
+- Unexpected verification results that updated the mental model
+- Productive pushback from the user that refined the working approach
+- Pivots between different work threads
+- Near-misses (paths considered then rejected) that hold signal
+- A scope completed (phase, feature, MR landed)
+
+**Signals NOT worth checkpointing:**
+
+- Routine task progress where the plan did not change
+- Successful execution of a previously-decided approach
+- Small mechanical commits (lint fixes, formatting, typo corrections,
+  dependency bumps)
+
+If unsure, lean toward no-op. A stale SESSION.md is worse than an
+absent update.
 
 ## Steps
 
-1. Gather current state:
+1. Read current state to compare against what's about to be written:
+   - `.claude/SESSION.md` (existing snapshot, if any)
+   - `.claude/TASKS.md` (existing backlog, if any)
+   - Triggering commit (above) — the focus of judgment
+   - Recent context (above) — surrounding commits
+
+2. Gather candidate facts:
    - What task is currently in progress?
    - What has been completed since last checkpoint?
    - What decisions have been made?
    - Any blockers or open questions?
 
-2. Update `.claude/SESSION.md`:
+3. Apply the judgment above. If no update warranted, skip to step 6
+   with a no-op confirmation.
+
+4. Refresh `.claude/SESSION.md` in place (single snapshot, overwrite).
+   Use the canonical shape:
    - Last Updated: [current timestamp]
+   - Branch: current branch + parenthetical (clean / N ahead / etc.)
    - Current Focus: [active work]
    - Status: [in_progress / blocked / waiting]
-   - Completed: [list items done]
+   - Completed This Session: [grouped by feature/MR if multiple]
+   - In Progress: explicit, or "Nothing partially complete"
    - Next Steps: [immediate actions]
-   - Decisions: [key choices made]
-   - Blockers: [if any]
+   - Blockers: explicit, or "None"
+   - Key Decisions (this session): table format (Decision | Choice)
+   - Repo-specific reference sections (commands, gotchas, resume
+     protocol) at the end if helpful
 
-3. Update `.claude/TASKS.md`:
-   - Move completed tasks to "Completed This Session"
-   - Add timestamps to completed items
+5. Update `.claude/TASKS.md` if the backlog actually changed:
+   - Move completed items to a completed section with date stamps
+     (`[x] **YYYY-MM-DD** — description`)
    - Add any newly discovered tasks to backlog
+   - If TASKS.md content did not change, do not rewrite it
 
-4. Pattern verification (self-check):
-   - Am I following CLAUDE.md patterns?
-   - Any drift from established conventions?
-   - Note corrections needed
+6. Confirm:
 
-5. Confirm checkpoint saved:
-   ```
+   **If updates were made**, run a focused self-check first: is the
+   artifact I just wrote consistent with CLAUDE.md patterns? Any drift
+   from established conventions in the written content? Note corrections
+   needed. Then confirm:
+
+   ```text
    ✓ Checkpoint saved at [timestamp]
+   Updated: SESSION.md [+ TASKS.md if applicable]
+   Reason: [one-line summary of what changed in understanding]
+   ```
 
-   Progress:
-   - Completed: [count] tasks
-   - In Progress: [current task]
-   - Remaining: [count] tasks
+   **If no update warranted**, skip the self-check entirely and confirm:
 
-   Continuing...
+   ```text
+   ✓ Checkpoint no-op at [timestamp]
+   Nothing notable since last update — leaving SESSION.md unchanged.
    ```

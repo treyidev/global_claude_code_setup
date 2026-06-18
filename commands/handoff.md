@@ -51,7 +51,7 @@ Preserve all context for the next Claude Code session.
    ─────────────────────
    Session saved to .claude/SESSION.md
 
-   Next session: Run /project:resume
+   Next session: Run /resume
 
    Summary:
    - Completed: [count] tasks

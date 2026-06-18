@@ -38,4 +38,4 @@ Load context from last session and continue work.
    ```
 
 5. If no SESSION.md exists:
-   - Suggest: "No previous session found. Run /project:init to start tracking."
+   - Suggest: "No previous session found. Run /init to start tracking."
