@@ -193,7 +193,3 @@ git push origin main && git push github main
 Pure-portable: hook commands and doc references resolve via `$HOME` / `$CLAUDE_CONFIG_DIR`, so the
 setup runs unchanged on **macOS** (`/Users`), **Linux**, and **Windows via WSL** (`/home`). The
 bash utilities under `utils/` need a POSIX shell (native on macOS/Linux/WSL).
-
-> **Note:** `PLATFORM_INFRASTRUCTURE.md` predates the 2026-06-18 overhaul and may still reference
-> the old `/project:` command names and the retired "manual model-routing / all-shell-to-Sonnet"
-> rules — reconcile it against this README + `CLAUDE.md` when next touched.

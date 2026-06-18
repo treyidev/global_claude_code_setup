@@ -2,6 +2,10 @@
 
 > Reusable platform infrastructure for ALL Claude Code projects.
 > These are global utilities, not project-specific code.
+>
+> For the overall setup — the tier model (always-on core / path-scoped rules / hooks / skills),
+> per-language rules, and settings — see `README.md` and `CLAUDE.md`. This file documents the
+> **session / task-spawn / crash-recovery** infrastructure specifically.
 
 ---
 
@@ -10,22 +14,22 @@
 The following infrastructure is available globally (via `~/.claude/`) and can be used across all projects:
 
 ### Session Management Commands
-- **`/project:resume`** - Load context from previous session
-- **`/project:checkpoint`** - Save progress mid-session
-- **`/project:handoff`** - Persist state for next session
+- **`/resume`** - Load context from previous session
+- **`/checkpoint`** - Save progress mid-session
+- **`/handoff`** - Persist state for next session
 
 ### Task Spawning & Recovery
-- **`/project:spawn`** (via `task_spawn.sh`) - Create hierarchical subtasks with context preservation
-- **`/project:recover`** (via `task_recover.md`) - Intelligent crash recovery orchestration
+- **`task_spawn.sh`** - Create hierarchical subtasks with context preservation
+- **`/task_recover`** (via `task_recover.md`) - Intelligent crash recovery orchestration
 
 ### Shared Infrastructure
-- **`/shared-memory`** - Cross-IDE communication (symlinked to `shared_memory_updater.sh`)
+- **`/shared_memory`** - Cross-IDE communication (symlinked to `shared_memory_updater.sh`)
 
 ---
 
 ## Session Management Commands
 
-### `/project:resume` - Load Previous Context
+### `/resume` - Load Previous Context
 
 **Location:** `~/.claude/commands/resume.md`
 
@@ -43,7 +47,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 **Example:**
 ```bash
-/project:resume
+/resume
 ```
 
 **Output:**
@@ -54,7 +58,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 ---
 
-### `/project:checkpoint` - Save Progress Mid-Session
+### `/checkpoint` - Save Progress Mid-Session
 
 **Location:** `~/.claude/commands/checkpoint.md`
 
@@ -74,7 +78,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 **Example:**
 ```bash
-/project:checkpoint
+/checkpoint
 ```
 
 **Output:**
@@ -84,7 +88,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 ---
 
-### `/project:handoff` - Persist Full Context
+### `/handoff` - Persist Full Context
 
 **Location:** `~/.claude/commands/handoff.md`
 
@@ -105,7 +109,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 **Example:**
 ```bash
-/project:handoff
+/handoff
 ```
 
 **Output:**
@@ -117,7 +121,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 ## Task Spawning & Recovery Commands
 
-### `/project:spawn` - Create Hierarchical Subtasks
+### `task_spawn.sh` - Create Hierarchical Subtasks
 
 **Location:** `~/.claude/commands/task_spawn.sh`
 
@@ -156,7 +160,7 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 # Task ID: task-1767893084-236b25
 # Model: sonnet
 # Last Good Commit: c0f61be940fdffa16ce82c6a81211c1145342feb
-# Run on crash: /project:recover
+# Run on crash: /task_recover
 ```
 
 **Example - Branch-aware spawn (for code review workflow):**
@@ -185,7 +189,7 @@ When spawned task crashes:
 
 ---
 
-### `/project:recover` - Intelligent Crash Recovery
+### `/task_recover` - Intelligent Crash Recovery
 
 **Location:** `~/.claude/commands/task_recover.md`
 
@@ -389,19 +393,19 @@ Cross-IDE communication and task state tracking:
 ```
 User starts session
     ↓
-/project:resume
+/resume
     ↓
 Loads ./.claude/SESSION.md (local instance)
     ↓
 Work continues
     ↓
-/project:checkpoint (every 30-45 mins)
+/checkpoint (every 30-45 mins)
     ↓
 Updates ./.claude/SESSION.md with progress
     ↓
 Work completes
     ↓
-/project:handoff
+/handoff
     ↓
 Comprehensive ./.claude/SESSION.md saved
     ↓
@@ -410,7 +414,7 @@ Session ends
 
 **Task Spawning (Global + Project-Local):**
 ```
-/project:spawn --model sonnet --prompt "task"
+task_spawn.sh --model sonnet --prompt "task"
     ↓
 Creates patch file in ./.claude/patches/
     ↓
@@ -422,7 +426,7 @@ Spawned task executes
     ↓
 CRASH
     ↓
-/project:recover
+/task_recover
     ↓
 Detects state, guides recovery, executes fix
     ↓
@@ -440,19 +444,19 @@ Each project has its own context, but uses global commands:
 cd /path/to/any/project
 
 # Resume previous session
-/project:resume
+/resume
 
 # Save progress
-/project:checkpoint
+/checkpoint
 
 # Spawn subtask
 ./.claude/commands/task_spawn.sh --model sonnet --prompt "Task description"
 
 # Recover from crash
-/project:recover
+/task_recover
 
 # Save before stopping
-/project:handoff
+/handoff
 ```
 
 ---
@@ -483,12 +487,12 @@ Status field (active|done|discard) tracks lifecycle
 
 | Need | Command | Location |
 |------|---------|----------|
-| Load previous context | `/project:resume` | `~/.claude/commands/resume.md` |
-| Save progress (continue) | `/project:checkpoint` | `~/.claude/commands/checkpoint.md` |
-| Save state (stop session) | `/project:handoff` | `~/.claude/commands/handoff.md` |
+| Load previous context | `/resume` | `~/.claude/commands/resume.md` |
+| Save progress (continue) | `/checkpoint` | `~/.claude/commands/checkpoint.md` |
+| Save state (stop session) | `/handoff` | `~/.claude/commands/handoff.md` |
 | Spawn subtask | `task_spawn.sh --model sonnet --prompt "..."` | `~/.claude/commands/task_spawn.sh` |
-| Recover from crash | `/project:recover` | `~/.claude/commands/task_recover.md` |
-| Cross-IDE messages | `/shared-memory add ...` | `~/.claude/commands/shared-memory/cmd.sh` |
+| Recover from crash | `/task_recover` | `~/.claude/commands/task_recover.md` |
+| Cross-IDE messages | `/shared_memory add ...` | `~/.claude/commands/shared-memory/cmd.sh` |
 
 ---
 
@@ -496,9 +500,9 @@ Status field (active|done|discard) tracks lifecycle
 
 ```bash
 # Test session management
-/project:resume                    # Load context
-/project:checkpoint               # Save progress
-/project:handoff                  # Save state
+/resume                    # Load context
+/checkpoint               # Save progress
+/handoff                  # Save state
 
 # Test task spawning
 ./.claude/commands/task_spawn.sh \
