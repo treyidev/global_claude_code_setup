@@ -13,6 +13,41 @@
 
 ---
 
+## Instruction architecture (how these standards are organized — our way)
+
+Standards are tiered by **how they load**, to keep this always-on file lean while keeping rules
+enforced. Put new guidance in the right tier:
+
+1. **Always-on core — this `CLAUDE.md`.** Cross-language *principles*: SOLID, clean code,
+   architecture, reuse-first, documentation discipline, review stance, git — plus a 3-line
+   *core* per language (see *Language standards*). Loaded every session, so keep it lean:
+   principles and non-negotiables, not deep per-language syntax. (An example here may use one
+   language to illustrate a *universal* rule — the rule is what's universal.)
+2. **Path-scoped rules — `~/.claude/rules/<topic>.md` with `paths:` frontmatter.** Deep,
+   language- or domain-specific guidance. The harness loads these **deterministically and
+   on-demand** — only when Claude reads/edits a file matching the glob (e.g. `rules/python.md`'s
+   `paths: ["**/*.py"]` loads only when touching Python). This is how language standards stay
+   *mandatory* without bloating always-on context — no skill to forget, no model judgment.
+   User-level (`~/.claude/rules/`) applies to every project; a project can add/override via its
+   own `.claude/rules/`. **Edge case:** rules trigger on *reading* a matching file; a brand-new
+   file written without a prior read may not trigger — tier 1's 3-line core covers that, and a
+   tier-3 hook can close it.
+3. **Hooks — `~/.claude/settings.json`.** Deterministic *enforcement* + tooling: run a
+   formatter/linter on write (we run `PostToolUse: Write(*.py) → ruff`), or inject a rule for the
+   brand-new-file case above. Global hooks fire in every project; they can match tools
+   (`Write|Edit`), inspect the file path, inject context, or block.
+4. **Skills — `.claude/commands/*.md`.** Optional, multi-step *workflows* the user/model invokes
+   (`/review-backend`, `/handoff`, `/sync-docs`). **NOT for passive always-apply standards** —
+   skill invocation is model-driven and best-effort, so a standard buried in a skill gets
+   silently missed. A standard is a *rule* (declarative, auto-loaded); a procedure is a *skill*.
+
+**Routing new guidance:** cross-language principle → here · language/stack syntax →
+`rules/<lang>.md` (`paths:`) · must-run tooling / hard block → a hook · a chosen workflow → a
+skill. **Adding a language?** Create `~/.claude/rules/<lang>.md` with its `paths:` glob and add a
+3-line core to *Language standards* below.
+
+---
+
 ## Custom Command / Skill Model Selection
 
 Slash commands and skills live in `.claude/commands/*.md` (project + global); they are invoked
@@ -110,54 +145,6 @@ def get_user(user_id: str) -> User:
     
     return user
 ```
-
-### Prefer AST Static Analysis Over Runtime Metadata
-
-When introspecting Python source (e.g., discovering classes defined in a file, listing functions, extracting imports), **always use `ast.parse()`** instead of runtime metadata like `__module__`, `__qualname__`, or `inspect.getfile()`.
-
-```python
-# ❌ WRONG - Runtime metadata is loader-dependent and unreliable
-def find_local_classes(module):
-    return [
-        name for name in dir(module)
-        if isinstance(getattr(module, name), type)
-        and getattr(getattr(module, name), "__module__", None) == module.__name__
-    ]
-
-# ✅ CORRECT - AST gives deterministic, loader-independent results
-import ast
-from pathlib import Path
-
-def get_defined_class_names(file_path: Path) -> set:
-    source = file_path.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
-```
-
-**Why**: `__module__` depends on *how* the module was loaded (the `module_name` argument to `spec_from_file_location`). Dynamic loading with synthetic names makes it unreliable. AST parsing reads source text directly — deterministic, no side effects, no imports needed.
-
-**When to use AST**: Class/function discovery, import analysis, static validation.
-**When runtime is OK**: Type checking (`isinstance`), method resolution, actual class usage.
-
-### NEVER Use pip install — Use uv
-
-**All Python projects use uv for dependency management.** Never use `pip install` directly — it bypasses the lockfile, breaks reproducibility, and can corrupt the virtual environment.
-
-```bash
-# ❌ WRONG - Bypasses lockfile, breaks venv
-pip install -e ../../packages/shared/mgz_foundation
-pip install some-package
-
-# ✅ CORRECT - uv manages dependencies via lockfile
-uv add some-package
-uv add --dev some-package
-uv sync                           # Install all deps from lockfile
-uv lock                           # Regenerate lockfile
-```
-
-**Why**: uv's lockfile (`uv.lock`) ensures deterministic installs across machines. `pip install` operates outside uv's dependency graph, leading to version conflicts and missing transitive dependencies.
-
-**For path dependencies** (local packages in monorepo): Declare them in `pyproject.toml` and use `uv sync`.
 
 ---
 
@@ -389,376 +376,24 @@ When a documentation rule must be deferred to a future commit:
 
 ---
 
-## Documentation Requirements
-
-> _Superseded by ## Documentation Standards above. Retained temporarily for Python-specific WRONG/INSUFFICIENT/REQUIRED examples until those migrate to project-local CLAUDE.md files. See TASKS.md follow-ups for cleanup tracking._
-
-| Element | Required | Notes |
-|---------|----------|-------|
-| Summary | Always | One-line, ends with period |
-| Description | Always | Detailed behavior |
-| Args/Parameters | Always | Type, purpose, valid values |
-| Returns | Always | Including edge cases |
-| Raises | If applicable | Conditions for each |
-| Example | Always | Runnable code |
-| Reasoning | Non-trivial | WHY this approach |
-| Limitations | Always | Boundaries, constraints |
-
-### Documentation Quality (Inline Examples)
-```python
-# ❌ UNACCEPTABLE - Will be rejected in review
-def process(data):
-    """Process the data."""
-    pass
-
-
-# ❌ INSUFFICIENT - Needs more detail
-def process(data: list[Item]) -> Result:
-    """
-    Process a list of items.
-    
-    Args:
-        data: Items to process.
-    
-    Returns:
-        Processing result.
-    """
-    pass
-
-
-# ✅ REQUIRED - Minimum acceptable standard
-def process(data: list[Item], strict: bool = False) -> ProcessResult:
-    """
-    Process items with optional strict validation.
-
-    Iterates through items, applies transformations, and aggregates
-    results. Uses fail-soft approach by default.
-
-    Args:
-        data: Items to process. Empty list returns empty result.
-            Each item must have 'id' and 'value' attributes.
-            Maximum recommended batch: 10,000 items.
-        strict: Validation mode.
-            - False (default): Collect failures, continue.
-            - True: Raise on first failure.
-
-    Returns:
-        ProcessResult containing:
-        - successful: List of transformed items (order preserved)
-        - failed: List of (item, error) tuples
-        - stats: Dict with 'total', 'succeeded', 'failed'
-
-    Raises:
-        ProcessingError: In strict mode, when any item fails.
-        ValueError: If data is None (use empty list instead).
-
-    Reasoning:
-        Fail-soft default because batch processing typically
-        tolerates partial failure and allows inspection of
-        all failures in one run.
-
-    Limitations:
-        - Max practical batch: 10,000 items (memory)
-        - Sequential processing; see ProcessorPool for parallel
-        - Not thread-safe
-
-    Example:
-        >>> items = [Item(id=1, value="a"), Item(id=2, value="b")]
-        >>> result = process(items)
-        >>> print(f"Processed {len(result.successful)} items")
-        Processed 2 items
-
-        >>> # Handle failures
-        >>> for item, error in result.failed:
-        ...     logger.warning(f"Item {item.id}: {error}")
-
-    See Also:
-        - process_single: For single-item processing
-        - ProcessorPool: For parallel processing
-    """
-    pass
-```
-
-→ More templates: `~/.claude/reference/documentation-standards.md`
-
----
-
-## Python Standards
-
-### Type Hints (Required)
-
-Use **modern builtin generics** (PEP 585, Python 3.9+) and the **`X | None` union** (PEP 604,
-3.10+). The collection generics (`list`, `dict`, `tuple`, `set`) and `|` are built in — import
-from `typing` only what has no builtin form (`Any`, `Protocol`, `TypeVar`, `Callable`,
-`ClassVar`, …). Add `from __future__ import annotations` when forward refs or heavy annotations
-warrant it.
-
-```python
-# ✅ CORRECT - builtin generics + `X | None`
-def process(
-    items: list[Item],
-    config: Config | None = None,
-) -> ProcessResult:
-    ...
-
-# ❌ WRONG - typing-module collection aliases / Optional (legacy, soft-deprecated since 3.9)
-from typing import Dict, List, Optional        # NO — use list/dict + `X | None`
-def process(items: List[Item], config: Optional[Config] = None) -> ProcessResult:
-    ...
-
-# ✅ Still imported from typing (no builtin form):
-from typing import Any, Protocol, TypeVar, Callable
-```
-
-### Imports (Explicit, Grouped, Sorted)
-```python
-# Standard library
-from pathlib import Path
-from typing import Any, Protocol   # only what has no builtin form (collections use list/dict/…)
-
-# Third-party
-from pydantic import BaseModel, Field
-
-# Local
-from myproject.domain import User
-from myproject.repository import UserRepository
-```
-
-### Properties Over Getters
-```python
-# ❌ Java-style
-class User:
-    def get_full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-
-# ✅ Pythonic
-class User:
-    @property
-    def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}"
-```
-
-### Visibility Tiers (Module-private / Package-private / Public)
-
-Three visibility tiers, signaled via naming + export:
-
-| Tier | Naming | In `__init__.py` re-exports? | When to use |
-| ---- | ------ | ---------------------------- | ----------- |
-| **Module-private** | `_Name` (leading underscore) | No | Used only within the defining module. The underscore signals "do not import from outside this file." |
-| **Package-private** | `Name` (no underscore) | No (NOT in `__init__.py`) | Used across modules in the same package; not part of the package's public API. Fine for sibling modules to import directly. |
-| **Public** | `Name` (no underscore) | Yes (in `__init__.py` `__all__` / re-exported) | Part of the package's public API. |
-
-**Why package-private exists**: A leading underscore on a Protocol or class used as a type hint in a public function's signature is awkward — callers see the hint but can't import it without violating the underscore convention. Package-private (no underscore, not exported) signals "implementation detail at the package level, not consumer-facing" without that import friction. Sibling modules in the same package can import it freely.
-
-**Docstring convention** for package-private classes: lead with "Package-private contract for X" / "Package-private helper for X" and state explicitly "not re-exported from the package's `__init__.py`." This tells future readers (including future-you) that the class is intentionally not in the public surface.
-
-```python
-# Module-private — only this file uses it
-class _InternalCacheKey:
-    """Module-private cache key helper — do not import from sibling modules."""
-
-# Package-private — sibling modules in the same package may import; not public API
-class FeelTarget(Protocol):
-    """Package-private contract for ``Feel``.
-
-    Not re-exported from the package's ``__init__.py``. Sibling modules
-    may import directly. Callers don't need to — Python's structural
-    typing applies it implicitly.
-    """
-
-# Public — exported from package's __init__.py
-class Feel(AnimationGroup):
-    """Animated emotion transition. Public API."""
-```
-
-**When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
-
----
-
-## Kotlin Standards
-
-### Null Safety (Required)
-```kotlin
-// ✅ CORRECT - Explicit nullability
-fun findUser(id: String): User?  // May return null
-fun getUser(id: String): User    // Never returns null, throws if not found
-
-// ✅ CORRECT - Safe calls and elvis
-val name = user?.profile?.displayName ?: "Anonymous"
-
-// ❌ WRONG - Forcing non-null without check
-val name = user!!.name  // Avoid !! unless absolutely certain
-```
-
-### Data Classes (Prefer)
-```kotlin
-// ✅ CORRECT - Immutable data class
-data class User(
-    val id: String,
-    val name: String,
-    val email: String,
-)
-
-// ❌ WRONG - Mutable with var
-data class User(
-    var id: String,    // NO! Use val
-    var name: String,
-)
-```
-
-### Extension Functions (Idiomatic)
-```kotlin
-// ✅ CORRECT - Extend existing types
-fun String.toSlug(): String =
-    this.lowercase().replace(" ", "-")
-
-// Usage
-val slug = "Hello World".toSlug()  // "hello-world"
-```
-
-### Coroutines (Structured)
-```kotlin
-// ✅ CORRECT - Structured concurrency
-suspend fun fetchData(): Data = coroutineScope {
-    val user = async { fetchUser() }
-    val posts = async { fetchPosts() }
-    Data(user.await(), posts.await())
-}
-
-// ❌ WRONG - GlobalScope (unstructured)
-GlobalScope.launch { ... }  // NO! Use structured scope
-```
-
----
-
-## C++ Standards
-
-### Memory Management (RAII)
-```cpp
-// ✅ CORRECT - Smart pointers
-auto user = std::make_unique<User>("Alice");
-auto shared = std::make_shared<Config>();
-
-// ❌ WRONG - Raw new/delete
-User* user = new User("Alice");  // NO! Memory leak risk
-delete user;
-```
-
-### Const Correctness (Required)
-```cpp
-// ✅ CORRECT - Const where possible
-class UserService {
-public:
-    const User& getUser(const std::string& id) const;
-    void updateUser(const User& user);  // Takes const ref
-};
-
-// ❌ WRONG - Missing const
-User& getUser(std::string id);  // Non-const, copies string
-```
-
-### Modern C++ (C++17/20)
-```cpp
-// ✅ CORRECT - Structured bindings
-auto [name, age, email] = getUser();
-
-// ✅ CORRECT - std::optional for nullable
-std::optional<User> findUser(const std::string& id);
-
-// ✅ CORRECT - Range-based for
-for (const auto& item : items) { ... }
-
-// ❌ WRONG - C-style
-for (int i = 0; i < items.size(); i++) { ... }  // Prefer range-based
-```
-
-### Error Handling
-```cpp
-// ✅ CORRECT - Exceptions for errors, optional for absence
-std::optional<User> findUser(const std::string& id);  // May not exist
-User getUser(const std::string& id);  // Throws if not found
-
-// ✅ CORRECT - noexcept where guaranteed
-void swap(User& a, User& b) noexcept;
-```
-
----
-
-## Java Standards
-
-### Null Handling (Required)
-```java
-// ✅ CORRECT - Optional for nullable returns
-public Optional<User> findUser(String id) {
-    return Optional.ofNullable(repository.find(id));
-}
-
-// ✅ CORRECT - @Nullable/@NonNull annotations
-public void process(@NonNull String input, @Nullable Config config) { }
-
-// ❌ WRONG - Returning null without indication
-public User findUser(String id) {
-    return null;  // NO! Use Optional
-}
-```
-
-### Immutability (Prefer)
-```java
-// ✅ CORRECT - Immutable with records (Java 16+)
-public record User(String id, String name, String email) {}
-
-// ✅ CORRECT - Final fields, no setters
-public final class User {
-    private final String id;
-    private final String name;
-
-    public User(String id, String name) {
-        this.id = id;
-        this.name = name;
-    }
-}
-
-// ❌ WRONG - Mutable bean
-public class User {
-    private String id;
-    public void setId(String id) { this.id = id; }  // NO!
-}
-```
-
-### Streams (Idiomatic)
-```java
-// ✅ CORRECT - Stream API for collections
-List<String> names = users.stream()
-    .filter(User::isActive)
-    .map(User::getName)
-    .collect(Collectors.toList());
-
-// ❌ WRONG - Manual iteration for transformations
-List<String> names = new ArrayList<>();
-for (User user : users) {
-    if (user.isActive()) {
-        names.add(user.getName());
-    }
-}
-```
-
-### Dependency Injection
-```java
-// ✅ CORRECT - Constructor injection
-public class UserService {
-    private final UserRepository repository;
-
-    public UserService(UserRepository repository) {
-        this.repository = repository;
-    }
-}
-
-// ❌ WRONG - Field injection
-public class UserService {
-    @Inject
-    private UserRepository repository;  // Harder to test
-}
-```
+## Language standards (deep per-language rules auto-load from `~/.claude/rules/<lang>.md`)
+
+Full, language-specific standards live in path-scoped rule files that load **only** when you
+touch that language (see *Instruction architecture* above). Always-on cores — enough to keep a
+brand-new file honest before its rule triggers:
+
+- **Python** — `**/*.py` → `~/.claude/rules/python.md`. uv only (never pip); type hints =
+  builtin generics + `X | None`; Google docstrings; properties over getters; module/package/
+  public visibility tiers; AST over runtime metadata.
+- **Kotlin** — `**/*.kt`, `**/*.kts` → `~/.claude/rules/kotlin.md`. Explicit nullability
+  (`T?`/`T`, avoid `!!`); immutable `data class` (`val`, not `var`); structured coroutines (no
+  `GlobalScope`).
+- **C++** — `**/*.cpp`, `**/*.h`, … → `~/.claude/rules/cpp.md`. RAII + smart pointers (no raw
+  `new`/`delete`); const-correctness; modern C++17/20 (`std::optional`, range-for, structured
+  bindings).
+- **Java** — `**/*.java` → `~/.claude/rules/java.md`. `Optional` for nullable returns;
+  immutability (records, `final`, no setters); constructor injection; Streams for collection
+  transforms.
 
 ---
 
@@ -1165,7 +800,7 @@ Unless SESSION.md has been read or user provides context, assume this is a fresh
 |------|------|
 | Architecture patterns (layered, pipeline, emitter) | `~/.claude/reference/architecture.md` |
 | Feature workflow (epic→branch→PR) | `~/.claude/reference/workflow.md` |
-| Code standards (all languages) | `~/.claude/reference/code-standards.md` |
+| Per-language standards (auto-loaded, path-scoped) | `~/.claude/rules/{python,kotlin,cpp,java}.md` — see *Instruction architecture*. `reference/code-standards.md` is legacy, pending reconciliation. |
 | Documentation templates | `~/.claude/reference/documentation-standards.md` |
 
 
