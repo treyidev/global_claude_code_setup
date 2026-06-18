@@ -16,7 +16,6 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(wc:*)",
-      "Read(//Users/abhijit/Projects/treyi/yt/math-gazers/**)",
       "Bash(grep:*)",
       "Bash(lsof:*)",
       "WebFetch(domain:elevenlabs.io)"
