@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /Users/abhijit/.claude/hooks/inject_lang_rule.py"
+            "command": "python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/inject_lang_rule.py"
           }
         ]
       }
