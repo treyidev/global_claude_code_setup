@@ -67,7 +67,13 @@ class User:
 
 ## Visibility Tiers (Module-private / Package-private / Public)
 
-Three visibility tiers, signaled via naming + export:
+Python has no access specifiers, so visibility is **simulated through `__init__.py`
+exposure**: a class/function is "private" precisely when it is *not* re-exported from its
+package's `__init__.py`. A consumer then can't reach it without dotting into a module path,
+which is itself the signal "you're touching an internal." This is the house convention
+across the **math-gazers suite of applications** — default a new symbol to private and
+promote it only when a real caller appears. Three visibility tiers, signaled via naming +
+export:
 
 | Tier | Naming | In `__init__.py` re-exports? | When to use |
 | ---- | ------ | ---------------------------- | ----------- |
@@ -99,6 +105,39 @@ class Feel(AnimationGroup):
 ```
 
 **When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
+
+## Style earns its keep — debuggability first (functions vs classes vs closures)
+
+Paradigm is subordinate to **maintainability and debuggability** — the priorities for a solo
+maintainer. Pick the plainest shape that does the job; every abstraction (a class, a closure, a
+factory, an extra indirection) must **earn its keep** against a concrete, named benefit. Never
+apply functional *or* OO style dogmatically. (Universal principle; this is its Python shape — the
+cross-language statement lives in `~/.claude/CLAUDE.md`.)
+
+The debuggability tests a shape must pass:
+
+- **Importable + unit-testable in isolation** — can I `from mod import thing` and exercise it alone?
+- **Clean breakpoint** — can I set one on the logic without stepping through a wrapper?
+- **Legible traceback** — does a failure name a real top-level symbol, not `factory.<locals>.inner`?
+- **Inspectable state** — can I `print()` the thing that decides behaviour?
+
+Concrete calls:
+
+- **Prefer top-level pure functions + explicit immutable data** over a closure that hides
+  otherwise-testable functions inside `<locals>`. A `make_thing(config)` factory returning inner
+  closures fails every test above; `do_thing(arg, config=DEFAULT)` passes them and is just as
+  "functional" (pure, config injected as data). Reach for a closure only to capture genuinely
+  per-instance state a default arg can't express.
+- **A class earns its keep only with real mutable state or a lifecycle** — or when the framework
+  demands one (ASGI middleware, `Exception` subclasses, a `Protocol`). A class whose methods only
+  read constants is a *namespace pretending to be an object*: prefer a module of functions + a
+  frozen-dataclass record (see *Visibility Tiers* and the value-object rule above).
+- **Inject configuration as an immutable record** (`@dataclass(frozen=True)` passed as a defaulted
+  parameter), not as hidden closure state — the record is printable, and a test can pass a tiny one.
+
+This is the design counterpart to YAGNI and the Reuse-First "quantify before you defend" rule: the
+question is never "is this more FP or more OO?" but "does this shape make the code easier to
+maintain and debug — and if not, what concrete benefit pays for the abstraction?"
 
 ## Prefer AST Static Analysis Over Runtime Metadata
 
