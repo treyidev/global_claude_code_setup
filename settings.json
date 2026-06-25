@@ -27,7 +27,6 @@
       "Bash(sudo:*)"
     ]
   },
-  "model": "opus[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -67,5 +66,6 @@
     "gitlab@claude-plugins-official": true
   },
   "effortLevel": "max",
-  "switchModelsOnFlag": false
+  "switchModelsOnFlag": false,
+  "model": "opus[1m]"
 }

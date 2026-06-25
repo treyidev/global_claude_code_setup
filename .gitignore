@@ -7,6 +7,7 @@
 # Backups
 *.bak
 *.backup
+backups/
 
 # Debug/internal Claude Code files
 debug/
