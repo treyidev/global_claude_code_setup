@@ -183,6 +183,40 @@ class TypeMatcher:  # Worker does the filtering
 
 ---
 
+## Style Earns Its Keep — Debuggability First (paradigm is subordinate)
+
+**Paradigm — functional vs. object-oriented — is subordinate to maintainability and
+debuggability.** For a solo maintainer those two are the priorities; a style choice that hurts
+either does not earn its place. Pick the plainest shape that does the job, and make **every
+abstraction** (a class, a closure, a factory, an extra layer of indirection) **earn its keep
+against a concrete, named benefit.** Never apply functional *or* OO style dogmatically.
+
+A shape must pass these debuggability tests:
+
+- **Importable + testable in isolation** — can I import the thing and exercise it alone?
+- **Clean breakpoint** — can I break on the logic without stepping through a wrapper?
+- **Legible traceback** — does a failure name a real top-level symbol, not an anonymous inner
+  closure (`factory.<locals>.inner`, a lambda, etc.)?
+- **Inspectable state** — can I print/log the value that decides behaviour?
+
+Concrete calls (the language-specific shapes live in `~/.claude/rules/<lang>.md`):
+
+- **Prefer top-level functions + explicit immutable data over closures that hide otherwise-testable
+  logic.** A `make_thing(config)` factory returning inner closures fails every test above;
+  `do_thing(arg, config=DEFAULT)` passes them and is just as "functional" (pure, config injected as
+  data). Reach for a closure only to capture genuinely per-instance state a parameter can't express.
+- **A class earns its keep only with real mutable state or a lifecycle** — or when a framework
+  demands one (middleware, exception types, an interface/protocol). A class whose methods only read
+  constants is a namespace pretending to be an object; prefer functions + an immutable record.
+- **Inject configuration as an immutable record passed in**, not as hidden closure/global state —
+  the record is printable and a test can pass a tiny one.
+
+This is the design counterpart to YAGNI and the Reuse-First "quantify before you defend" rule
+below: the question is never "is this more FP or more OO?" but "does this shape make the code easier
+to maintain and debug — and if not, what concrete benefit pays for the abstraction?"
+
+---
+
 ## Reuse-First Discipline (CRITICAL — ENFORCE BEFORE WRITING ANY NEW CLASS)
 
 **Before writing a new class, behavior, animation, component, utility, or service, audit
@@ -448,6 +482,25 @@ Co-Authored-By: Claude  # NEVER add this
 ```
 
 → Full workflow: `~/.claude/reference/workflow.md`
+
+---
+
+## Issue / Story Tracker Convention (ALL projects & repos)
+
+**Every story/issue filed in any tracker (GitLab `glab`, GitHub `gh`) MUST be searchable
+(title), filterable (reused scoped labels), and structured (consistent gold-doc body) — never
+free-formed.** When asked to create/file an issue, story, ticket, or backlog item, **follow the
+`/create-story` skill** (`~/.claude/commands/create-story.md`) — do not hand-roll one.
+
+Non-negotiable minimums (full procedure in the skill):
+
+1. **Discover first** — list the project's existing labels + recent issues; **reuse** labels,
+   never invent one silently (flag if none fit).
+2. **Searchable title** — lead with the searchable noun phrase + a scope/ADR parenthetical.
+3. **Filterable labels** — apply the repo's scoped axes (`kind::*`, `area: *`, `theme: *`, `ADR`).
+4. **Structured body** — Summary · Motivation/Why · Scope (table) · Open questions · Suggested
+   shape (non-binding) · Definition of done · Related. **Don't invent answers to open forks.**
+5. **Approval-gate framing** — a story *scopes the goal*; it does not authorize a build.
 
 ---
 
