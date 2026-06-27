@@ -106,6 +106,8 @@ class Feel(AnimationGroup):
 
 **When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
 
+**Tests count as a sibling consumer — prefer package-private over a leading underscore for anything a test imports.** A class its own package's tests need to construct and exercise *in isolation* (the debuggability-first *importable + unit-testable* test) is a reason to make it **package-private** (no underscore, not exported) rather than module-private: a leading-underscore name is awkward to import from the mirrored `tests/` tree, and the `_` signals "do not import from outside this file" — which a test then violates. So don't reflexively reach for `_` on an implementation class; ask "does anything outside this *file* (a sibling module, the package's factory, its tests) import it by name?" — if yes, it's package-private. The canonical case is **a seam's concrete adapter**: e.g. an aiocache-backed `Cache` implementation that consumers receive via DI *as the seam type* (so it is **not** public — no `__init__.py` export; consumers depend on the `Cache` Protocol, never the adapter), yet that the package's own factory and tests build directly by name (so it is **not** underscore-private either). Package-private — no underscore, not re-exported — is the correct tier.
+
 ## Style earns its keep — debuggability first (functions vs classes vs closures)
 
 Paradigm is subordinate to **maintainability and debuggability** — the priorities for a solo
