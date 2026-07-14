@@ -7,10 +7,14 @@
 
 ## Overview
 ```
-Epic → Issues → Branch → Playground → Verify → Commit → Test → PR → Review → Merge
+Epic → Integration branch → Issues → Feature branch (off integration) → Playground →
+Verify → Commit → Test → MR → Review → Merge into integration   ⟲ per unit
+… then, epic done: one MR integration → main
 ```
 
-Every feature follows this flow. Shortcuts lead to messy rollbacks.
+Every feature follows this flow. A multi-unit epic gets an **integration branch** off `main`; each
+unit is a feature branch off *that* (not `main`), reviewed back into integration, and the whole epic
+lands on `main` in one final MR (see *Branch Strategy* below). Shortcuts lead to messy rollbacks.
 
 ---
 
@@ -46,25 +50,49 @@ Every feature follows this flow. Shortcuts lead to messy rollbacks.
 
 ---
 
-### 2. Branch Strategy
-```bash
-# Feature branch per implementation unit
-git checkout -b feature/epic-name/component-name
+### 2. Branch Strategy — integration branch per epic (two-tier)
 
-# Examples:
-# feature/eyelid-blink/eyelid-component
-# feature/eyelid-blink/eyelid-pair
-# feature/eyelid-blink/config-integration
+A multi-unit epic does **not** merge unit-by-unit into `main`. It gets a long-lived
+**integration branch**; each unit is a **feature branch off that integration branch**; units merge
+**back into integration via MR**; and the whole epic lands on `main` in **one** final MR. `main`
+only ever receives whole, proven epics (plus genuinely standalone single-unit work).
+
+```bash
+# 1. Epic ⇒ one integration branch off main (long-lived; lives for the epic's duration)
+git checkout main && git pull
+git checkout -b integration/<epic-slug>
+git push -u origin integration/<epic-slug>
+
+# 2. Each unit ⇒ a feature branch OFF THE INTEGRATION BRANCH (never off main)
+git checkout integration/<epic-slug> && git pull
+git checkout -b feat/<epic-slug>-<unit>      # or fix/… , refactor/… , test/…
+# … implement + test + document …
+
+# 3. Feature → integration via MR (target = the integration branch), after review + validation.
+#    Repeat 2–3 for every unit in the epic.
+
+# 4. Epic done ⇒ ONE MR merges integration → main.
 ```
 
 #### Rules
 
 | Rule | Rationale |
 |------|-----------|
-| One branch per logical unit | Atomic PRs, easy review |
-| Branch from main (or epic branch) | Clean history |
-| Never commit directly to main | PR gate catches issues |
-| PRs for all merges | Enables safe experimentation |
+| Epic ⇒ its own `integration/<epic-slug>` branch off `main` | Keeps `main` clean while the epic is in flight |
+| One feature branch per logical unit, **off the integration branch** | Atomic, reviewable MRs that don't touch `main` |
+| Feature → integration via MR (reviewed + validated) — never feature → `main` | Per-unit gate; integration stays releasable |
+| Epic complete ⇒ one MR integration → `main` | Whole-epic gate; `main` history reads as proven epics |
+| Never commit directly to `main` **or** the integration branch | All changes flow through an MR gate |
+| No epic (standalone single unit)? Branch directly off `main` | The integration tier is only for multi-unit epics |
+
+> **GitLab Free has no first-class Epics** — use a **parent tracking issue** with a task-list of
+> child issues as the epic (see global `CLAUDE.md` *Issue / Story Tracker Convention*). The
+> integration branch is named for that epic; child-issue MRs target the integration branch and tick
+> the parent's checklist on merge.
+>
+> **A unit already merged to `main`** before the epic adopted this model stays there as the
+> foundation — fork the integration branch from the current `main` (it already contains that unit)
+> and carry the remaining units on it.
 
 ---
 
