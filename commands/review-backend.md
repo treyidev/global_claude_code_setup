@@ -1,6 +1,7 @@
 ---
 description: Review backend code (any language) against universal standards + the per-language rules
 model: sonnet
+argument-hint: "[file, directory, or selection to review]"
 ---
 
 # /review-backend (global generic)

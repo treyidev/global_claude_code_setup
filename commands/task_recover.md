@@ -4,7 +4,7 @@ type: task-recovery
 description: Intelligent crash recovery orchestration for spawned tasks
 ---
 
-# /task:recover - Intelligent Task Recovery
+# /task_recover — Intelligent Task Recovery
 
 You are a crash recovery orchestrator. Your role is to:
 1. Detect what happened

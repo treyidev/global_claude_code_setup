@@ -2,6 +2,7 @@
 model: sonnet
 allowed-tools: Read, Write, Bash(glab:*), Bash(gh:*), Bash(cat:*)
 description: Create a tracker story/issue (GitLab/GitHub) using the house convention — searchable, filterable, structured
+argument-hint: "<what the story is about — topic, scope, any known constraints>"
 ---
 
 # Create a Story / Issue (house convention)

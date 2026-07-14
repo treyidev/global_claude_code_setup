@@ -1,6 +1,7 @@
 ---
 description: Review frontend code against universal standards + house patterns where defined
 model: sonnet
+argument-hint: "[file, directory, or selection to review]"
 ---
 
 # /review-frontend (global generic)
