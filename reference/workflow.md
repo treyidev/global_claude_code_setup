@@ -243,6 +243,16 @@ WIP  # Not descriptive
 - [ ] Semantic colors used
 ```
 
+#### MR anatomy — hard-won conventions (GitLab)
+
+| Rule | Why |
+|------|-----|
+| `Closes #N` goes in the **description body**, never only the title | GitLab scans only the description for auto-close keywords — a title-only `Closes` silently fails to close the issue (caught validating MR !40, 2026-07-14) |
+| Set assignee (and reviewer where applicable) at creation: `glab mr create --assignee "@me" …` | An unassigned MR is invisible in filtered views |
+| Disclose any process exception in the description | e.g. an owner-sanctioned `--no-verify` push: name the sanction and its scope — exceptions are per-context, never standing |
+| Docs ship in the SAME MR as the build | Run `/sync-docs` before opening (Documentation Discipline) |
+| After the merge: run `/post-merge` | Sonnet-delegated housekeeping — main sync, branch cleanup, mirror push, three-remote SHA verify |
+
 #### Review Process
 
 1. **Author** creates PR with full description
