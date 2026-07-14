@@ -253,6 +253,8 @@ WIP  # Not descriptive
 | Docs ship in the SAME MR as the build | Run `/sync-docs` before opening (Documentation Discipline) |
 | After the merge: run `/post-merge` | Sonnet-delegated housekeeping — main sync, branch cleanup, mirror push, three-remote SHA verify |
 
+> Apply all of the above automatically with **`/open-mr [closes-issue-number] [target-branch]`**.
+
 #### Review Process
 
 1. **Author** creates PR with full description
