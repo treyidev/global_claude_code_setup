@@ -65,7 +65,8 @@
     "vercel@claude-plugins-official": false,
     "gitlab@claude-plugins-official": true
   },
-  "effortLevel": "max",
+  "tui": "fullscreen",
   "switchModelsOnFlag": false,
-  "model": "opus[1m]"
+  "model": "claude-fable-5[1m]",
+  "effortLevel": "xhigh"
 }
