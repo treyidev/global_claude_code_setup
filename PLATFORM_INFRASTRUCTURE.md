@@ -41,9 +41,13 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 **What it does:**
 1. Reads `.claude/SESSION.md`
-2. Parses current focus, completed work, next steps
-3. Restores project context
-4. Identifies any active spawned tasks
+2. Reads `.claude/TASKS.md` (the HOT tier of the three-tier working memory — global
+   CLAUDE.md §"🗂️ Session continuity"); if the project still carries the old monolithic
+   TASKS.md format, **aligns it to the three-tier division first** (verbatim moves into
+   `.claude/tasks/{archive,backlog}.md`)
+3. Parses current focus, completed work, next steps
+4. Restores project context
+5. Identifies any active spawned tasks
 
 **Example:**
 ```bash
@@ -73,8 +77,11 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 1. Captures current git state
 2. Validates no uncommitted secrets
 3. Updates `.claude/SESSION.md` with progress
-4. Summarizes completed work
-5. Continues session (unlike handoff)
+4. Maintains the task tiers if the backlog changed: shipped write-ups →
+   `.claude/tasks/archive.md`, gated/deferred items → `.claude/tasks/backlog.md`,
+   hot queue stays in `.claude/TASKS.md`
+5. Summarizes completed work
+6. Continues session (unlike handoff)
 
 **Example:**
 ```bash
@@ -102,10 +109,13 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 **What it does:**
 1. Runs git status check
 2. Updates `.claude/SESSION.md` comprehensively
-3. Saves all progress markers
-4. Preserves active spawned task state
-5. Documents "For Next Session" section
-6. Cleans up temporary state
+3. Finalizes the task tiers (three-tier standard): `.claude/TASKS.md` (HOT) current,
+   shipped write-ups → `.claude/tasks/archive.md`, gated/deferred →
+   `.claude/tasks/backlog.md` — no DONE prose left in the hot tier
+4. Saves all progress markers
+5. Preserves active spawned task state
+6. Documents "For Next Session" section
+7. Cleans up temporary state
 
 **Example:**
 ```bash

@@ -1,6 +1,6 @@
 ---
 model: sonnet
-allowed-tools: Read, Write, Bash(git:*)
+allowed-tools: Read, Write, Edit, Bash(git:*)
 description: Persist session state for next session
 ---
 

@@ -450,6 +450,10 @@ brand-new file honest before its rule triggers:
 - **Python** — `**/*.py` → `~/.claude/rules/python.md`. uv only (never pip); type hints =
   builtin generics + `X | None`; Google docstrings; properties over getters; module/package/
   public visibility tiers; AST over runtime metadata.
+- **TypeScript** — `**/*.ts(x)`, `**/*.[mc]ts` → `~/.claude/rules/typescript.md`. Strict mode;
+  no bare `any` (use `unknown` + narrow); finite string sets = **object-const enum** (`as const`
+  + derived type, never raw literals or TS `enum`); validate external data at the boundary
+  (Zod); exhaustive dispatch via `Record`/`never`-guard.
 - **Kotlin** — `**/*.kt`, `**/*.kts` → `~/.claude/rules/kotlin.md`. Explicit nullability
   (`T?`/`T`, avoid `!!`); immutable `data class` (`val`, not `var`); structured coroutines (no
   `GlobalScope`).
@@ -738,18 +742,18 @@ These commands manage session state and continuity. They read/write to **project
 
 ```bash
 # Minimal interface - just model and prompt
-./.claude/commands/task_spawn.sh \
+~/.claude/commands/task_spawn.sh \
   --model "sonnet" \
   --prompt "Your task description"
 
 # Optional: branch-aware (creates git branch + GitLab issue)
-./.claude/commands/task_spawn.sh \
+~/.claude/commands/task_spawn.sh \
   --model "sonnet" \
   --prompt "Your task" \
   --branch-aware
 
 # Optional: nest under parent task
-./.claude/commands/task_spawn.sh \
+~/.claude/commands/task_spawn.sh \
   --model "sonnet" \
   --prompt "Subtask" \
   --parent-task "task-1234"
