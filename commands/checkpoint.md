@@ -105,11 +105,16 @@ absent update.
    - Repo-specific reference sections (commands, gotchas, resume
      protocol) at the end if helpful
 
-5. Update `.claude/TASKS.md` if the backlog actually changed:
-   - Move completed items to a completed section with date stamps
-     (`[x] **YYYY-MM-DD** — description`)
-   - Add any newly discovered tasks to backlog
-   - If TASKS.md content did not change, do not rewrite it
+5. Update the task tiers if the backlog actually changed (three-tier
+   standard — global CLAUDE.md §"🗂️ Session continuity"):
+   - Shipped unit ⇒ move its write-up to `.claude/tasks/archive.md` with a
+     date stamp (`[x] **YYYY-MM-DD** — description`); a one-liner stays in
+     TASKS.md only while its parent epic is still open. Lift any embedded
+     open fragment into `backlog.md` (never bury open work in the archive).
+   - Newly discovered work ⇒ `.claude/TASKS.md` if in-flight/approved;
+     `.claude/tasks/backlog.md` if gated/deferred (record need +
+     activation trigger — never bare YAGNI).
+   - If no tier's content changed, do not rewrite any of them.
 
 6. Confirm:
 

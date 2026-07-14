@@ -13,6 +13,37 @@
 
 ---
 
+## 🗂️ Session continuity — three-tier working memory (HIGHEST PRIORITY — never lose this)
+
+Cross-session state in EVERY project lives in exactly these project-local files, maintained by
+the **global** `/resume` · `/checkpoint` · `/handoff` skills (skills are global; the state files
+are per-project and travel in each project's own git repo):
+
+| File | Tier | Holds |
+|------|------|-------|
+| `.claude/SESSION.md` | snapshot | Per-session handoff (single snapshot, overwritten) |
+| `.claude/TASKS.md` | HOT | ONLY in-flight units · blocked-on-owner threads · the approved queue |
+| `.claude/tasks/backlog.md` | PENDING | Approval-gated + deferred items — each recorded with need + activation trigger + dated tool ref + re-survey clause (never bare YAGNI) |
+| `.claude/tasks/archive.md` | ARCHIVE | Immutable write-ups of shipped work |
+
+Invariants (non-negotiable, all projects):
+
+- A unit ships ⇒ its write-up moves to `tasks/archive.md` the **same session**; a one-liner stays
+  in TASKS.md only while its parent epic is still open.
+- DONE prose never accumulates in TASKS.md; gated/deferred items never sit in the hot tier.
+- Promotion `backlog → TASKS.md` happens **only on owner approval**. Items MOVE, never duplicate.
+- An archived write-up that carries an embedded open fragment (a deferred sub-item, a pending
+  owner action) gets that fragment **lifted into backlog.md** with a pointer back — archiving
+  must never bury open work.
+- `/resume` in a project still on the old single-file TASKS.md format: **align it to this
+  division first** (verbatim moves — procedure in the /resume skill) before continuing work.
+- Restructuring these files, or this rule, requires explicit owner approval.
+
+WHY: TASKS.md is what loads every session — keeping it lean is the token + focus lever; archive
+and backlog load on demand. Adopted 2026-07-14 (gazers-universe); applies to all projects.
+
+---
+
 ## Instruction architecture (how these standards are organized — our way)
 
 Standards are tiered by **how they load**, to keep this always-on file lean while keeping rules
@@ -483,6 +514,28 @@ Co-Authored-By: Claude  # NEVER add this
 
 → Full workflow: `~/.claude/reference/workflow.md`
 
+### Epic branching model (integration branch per epic) — ALL projects & repos
+
+Multi-unit efforts use a **two-tier branch model**; genuinely standalone single-unit work does not.
+
+- **Epic ⇒ integration branch.** Every epic — in trackers without first-class Epics (GitLab Free),
+  the **parent tracking issue** that stands in for one (see *Issue / Story Tracker Convention*) —
+  gets its own long-lived **integration branch off `main`**, named `integration/<epic-slug>`.
+- **Unit of work ⇒ feature branch off the integration branch** (NOT off `main`), named by
+  conventional type (`feat/<epic-slug>-<unit>`, `fix/<epic-slug>-<unit>`, …).
+- **Feature → integration via MR**, and only after review + validation. Never merge a feature branch
+  straight to `main`; never commit to the integration branch (or `main`) directly.
+- **Epic done ⇒ one MR merges the integration branch → `main`.** `main` only ever receives whole,
+  proven epics — plus genuinely standalone single-unit work.
+- **No epic? Branch directly off `main`** as before — the integration tier exists only to keep
+  `main` clean while a multi-unit epic is in flight.
+
+This **extends** "never commit directly to main": for an epic the merge gate is *two-staged* —
+feature→integration (per-unit review), then integration→main (whole-epic review). A unit that
+slipped straight to `main` before its epic adopted this model stays there as the foundation; the
+integration branch forks from the current `main` (it already contains that unit) and carries the
+rest of the epic.
+
 ---
 
 ## Issue / Story Tracker Convention (ALL projects & repos)
@@ -548,6 +601,21 @@ When in doubt on a verbose or long-running command, delegate to Sonnet.
 ---
 
 ## Code Review Stance
+
+### Flag suspected owner mistakes BEFORE complying (MUST NOT FAIL — applies to EVERY instruction, all projects)
+
+**When an owner instruction looks like a mistake, a typo, or conflicts with an established
+convention / a prior decision / the code, STOP and flag it before acting — never silently comply.**
+This is not limited to code review; it applies to every instruction (a value, name, file extension,
+path, flag, command, or design decision). State the conflict concretely, name the likely-correct
+alternative, and ask. Frame it as a quick flag, not a lecture. If the owner confirms the original,
+comply. A 5-second flag is always cheaper than shipping the owner's slip.
+
+- This is **additive** to *evidence-based, not advocacy*: once the owner has **decided** a direction,
+  don't re-litigate it — the pushback is for *suspected errors*, not for re-arguing settled calls.
+- Canonical example (2026-07-02): owner chose a `.log` extension for a JSON stream; the house
+  convention was `*.jsonl`. Flagging it → owner corrected to `.jsonl` and directed that this be a
+  standing rule. (Project-level mirror lives in that repo's auto-memory.)
 
 ### Push Back When:
 
@@ -839,6 +907,9 @@ If unsure between mechanical and substantive, lean toward NO-OP. A stale SESSION
 | File | Purpose |
 |------|---------|
 | `.claude/SESSION.md` | Handoff state (written by `/handoff`) |
+| `.claude/TASKS.md` | HOT tier of the backlog — see *🗂️ Session continuity — three-tier working memory* (top of this file) |
+| `.claude/tasks/backlog.md` | PENDING tier — approval-gated / deferred items with triggers |
+| `.claude/tasks/archive.md` | ARCHIVE tier — shipped write-ups, immutable |
 | `.claude/JOURNAL.md` | Historical log (optional, append-only) |
 
 ### Never Assume Prior Context
@@ -855,6 +926,7 @@ Unless SESSION.md has been read or user provides context, assume this is a fresh
 | Feature workflow (epic→branch→PR) | `~/.claude/reference/workflow.md` |
 | Per-language standards (auto-loaded, path-scoped) | `~/.claude/rules/{python,kotlin,cpp,java}.md` — see *Instruction architecture*. `reference/code-standards.md` is legacy, pending reconciliation. |
 | Documentation templates | `~/.claude/reference/documentation-standards.md` |
+| Liquid Glass / glassmorphism + spring motion + honest busy/cancel UX on the web (Apple spec distilled; UI-heavy projects: SuitabilityGate, gazer-universe) | `~/.claude/reference/liquid-glass-web.md` |
 
 
 ## Documentation Discipline

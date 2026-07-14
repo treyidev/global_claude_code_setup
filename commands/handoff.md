@@ -37,9 +37,13 @@ Preserve all context for the next Claude Code session.
    - Note in SESSION.md under "Documentation Updates Needed"
    - List specific CLAUDE.md files affected
 
-3. Update `.claude/TASKS.md`:
-   - Finalize completed tasks with timestamps
-   - Ensure backlog is current
+3. Update the task tiers (three-tier standard — global CLAUDE.md
+   §"🗂️ Session continuity"):
+   - `.claude/TASKS.md` (HOT): finalize in-flight / blocked-on-owner /
+     approved items with timestamps
+   - Shipped write-ups → `.claude/tasks/archive.md`; gated/deferred items →
+     `.claude/tasks/backlog.md` (need + activation trigger preserved)
+   - Ensure no DONE prose is left accumulating in TASKS.md
 
 4. Verify uncommitted changes:
    - If uncommitted work exists, note in SESSION.md
