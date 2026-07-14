@@ -95,6 +95,23 @@ The following infrastructure is available globally (via `~/.claude/`) and can be
 
 ---
 
+### `/skills-help` - Live Skills Catalog
+
+**Location:** `~/.claude/commands/skills-help.md`
+
+**Purpose:** Never forget what skills exist — scans `~/.claude/commands/` + `./.claude/commands/`
+live (no hardcoded list to rot) and catalogs every skill: what it does, model, when to use.
+
+**Invocations:**
+- `/skills-help` — compact grouped catalog (global + project tiers, shadowing noted)
+- `/skills-help with-examples` — adds one realistic invocation example per skill
+- `/skills-help <skill-name>` — deep dive on one skill (arguments, steps, 2 examples)
+
+**Discovery:** `/resume` always prints this catalog's invocations as its last line, so every
+session starts with a pointer to it.
+
+---
+
 ### `/handoff` - Persist Full Context
 
 **Location:** `~/.claude/commands/handoff.md`

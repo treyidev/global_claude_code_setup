@@ -42,7 +42,8 @@ Load context from last session and continue work.
    - Status: !`git status --short`
    - Recent: !`git log --oneline -3`
 
-5. Summarize to user:
+5. Summarize to user — ALWAYS include the skills-catalog footer as the last lines (owner
+   directive 2026-07-14: never let the catalog be forgotten):
    ```
    📍 Resuming Session
    ─────────────────────
@@ -56,6 +57,8 @@ Load context from last session and continue work.
    1. [from SESSION.md]
 
    Continue with next step, or redirect?
+   ─────────────────────
+   📚 Skills catalog: /skills-help · /skills-help with-examples · /skills-help <skill-name>
    ```
 
 6. If no SESSION.md exists:
