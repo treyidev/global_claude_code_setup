@@ -44,6 +44,10 @@ import sys
 # `paths:` frontmatter. Longest-suffix match is unnecessary here (extensions are unambiguous).
 _EXT_TO_RULE: dict[str, str] = {
     ".py": "python",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".mts": "typescript",
+    ".cts": "typescript",
     ".kt": "kotlin",
     ".kts": "kotlin",
     ".cpp": "cpp",

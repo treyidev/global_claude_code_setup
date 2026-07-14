@@ -16,10 +16,11 @@ Review the target code (current file, selection, or path passed as argument).
 1. **Load `~/.claude/reference/review-core.md`** — apply ALL universal dimensions (U1–U8),
    its severity tiers, and its output format.
 
-2. **Apply the language standard.** For TypeScript/JavaScript there is currently no
-   `~/.claude/rules/` file — apply the project's tsconfig/eslint strictness as the baseline
-   (strict mode expected; `any` without justification: MUST-FIX). For other languages, the
-   path-scoped `~/.claude/rules/<lang>.md` auto-loads — treat it as authoritative.
+2. **Apply the language standard.** The path-scoped `~/.claude/rules/<lang>.md` auto-loads
+   when you read the files (TypeScript: `rules/typescript.md` — object-const enums, strict
+   mode, boundary validation, exhaustive dispatch) — treat it as the authoritative language
+   standard. A language with no rules file is itself a finding (CLAUDE.md stack-adoption
+   discipline requires one).
 
 3. **Frontend-generic dimensions** (on top of review-core):
    - **Component/module SRP:** a component that fetches AND transforms AND renders AND manages
