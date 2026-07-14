@@ -463,6 +463,9 @@ brand-new file honest before its rule triggers:
 - **Java** — `**/*.java` → `~/.claude/rules/java.md`. `Optional` for nullable returns;
   immutability (records, `final`, no setters); constructor injection; Streams for collection
   transforms.
+- **Shell** — `**/*.sh`, `**/*.bash`, `**/*.zsh` → `~/.claude/rules/shell.md`. Executable
+  scripts: `set -euo pipefail` (sourced libraries must NOT set it globally); quote every
+  expansion (`"${var:?}"` before destructive ops); `local` in functions; shellcheck posture.
 
 ---
 

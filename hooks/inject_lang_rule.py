@@ -57,7 +57,17 @@ _EXT_TO_RULE: dict[str, str] = {
     ".hpp": "cpp",
     ".hh": "cpp",
     ".java": "java",
+    ".sh": "shell",
+    ".bash": "shell",
+    ".zsh": "shell",
 }
+
+# Deliberately NOT hooked (deferred with reason, 2026-07-14): a PostToolUse formatter hook for
+# TypeScript (prettier/eslint --fix, the ruff analogue). Unlike ruff, those are project-local
+# deps — a global hook must guard on per-project config presence and adds latency to every TS
+# write. Need: format-on-write parity with Python. Trigger to revisit: a project where manual
+# formatting churn actually shows up in diffs/reviews. Until then, per-project pre-commit hooks
+# own TS formatting.
 
 
 def main() -> None:
