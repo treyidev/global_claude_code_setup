@@ -42,9 +42,11 @@ projects/
 sessions/
 SESSION.md
 
-# Plan-mode artifacts, IDE-integration runtime
+# Plan-mode artifacts, IDE/browser-integration runtime (chrome/ = auto-generated
+# native-messaging host wrapper — machine-specific, version-pinned, regenerated)
 plans/
 ide/
+chrome/
 
 # Installed plugins — reinstalled from settings.json `enabledPlugins`, not versioned here
 plugins/
