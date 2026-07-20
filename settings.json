@@ -48,6 +48,15 @@
             "command": "python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/inject_lang_rule.py"
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/adr_ceremony_reminder.py"
+          }
+        ]
       }
     ]
   },
@@ -67,6 +76,6 @@
   },
   "tui": "fullscreen",
   "switchModelsOnFlag": false,
-  "model": "claude-fable-5[1m]",
+  "model": "opus[1m]",
   "effortLevel": "xhigh"
 }
