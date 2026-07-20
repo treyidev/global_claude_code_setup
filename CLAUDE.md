@@ -564,6 +564,25 @@ Non-negotiable minimums (full procedure in the skill):
 
 ---
 
+## Spike Convention (ALL projects & repos)
+
+**Exploratory prototype work ("spike") routes through the `/spike` skill**
+(`~/.claude/commands/spike.md`) — **invoke it unprompted** whenever spike-shaped work
+arises: an ADR/design defers a fork to a prototype, the owner asks to prototype/explore/
+test a question, sitting evidence lands, or a verdict closes a spike. Never hand-roll the
+lifecycle (mirrors the `/create-story` rule above).
+
+Universal shape (the skill carries the procedure; project CLAUDE.md/ADRs refine): one
+spike = one question · **permanent `spike/<slug>` branch** — never merges to main, never
+deleted, no landing MR — pushed to all remotes · `main` gitignores `spikes/` (the spike
+branch's first commit removes the line) · a tracker story anchors the lifecycle · the
+verdict's ADR/decision record lands on main **via a short-lived `adr/<slug>` branch + MR
+carrying only decision artifacts** (branch deleted after merge — the ADR gets the MR, the
+spike never does), then the spike freezes. Adopted 2026-07-19/20 (byte-gazers
+ADR-0003/0008/0009).
+
+---
+
 ## Model Selection
 
 | Complexity | Model | Use For |
