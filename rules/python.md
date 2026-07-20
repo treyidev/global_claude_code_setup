@@ -106,6 +106,30 @@ class Feel(AnimationGroup):
 
 **When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
 
+### `__init__.py` stays lean — the curated API surface, nothing else (owner directive 2026-07-15)
+
+`__init__.py` is the package's public-API declaration: **re-exports + `__all__` + `__version__`
+only.** Never use it as a dumping ground:
+
+- **No narrative documentation.** The package's WHY / WHERE-it-fits / limitations story lives in
+  the project's `README.md` (or the implementing modules' headers) — a one-line docstring
+  pointing there is the ceiling. A 30-line prose header in `__init__.py` is pollution
+  (flagged on adr-graph, 2026-07-15).
+- **No logic, no classes, no functions.** Implementation lives in named modules; `__init__.py`
+  only *selects* what is public (the Visibility Tiers above depend on this staying true).
+- **No import-time side effects** beyond the re-export imports themselves.
+
+```python
+# ✅ CORRECT — the whole file
+"""Frobnicator public API (see README.md for design + usage)."""
+
+from frob.core import Frobnicator
+from frob.errors import FrobError
+
+__version__ = "1.2.0"
+__all__ = ["FrobError", "Frobnicator", "__version__"]
+```
+
 **Tests count as a sibling consumer — prefer package-private over a leading underscore for anything a test imports.** A class its own package's tests need to construct and exercise *in isolation* (the debuggability-first *importable + unit-testable* test) is a reason to make it **package-private** (no underscore, not exported) rather than module-private: a leading-underscore name is awkward to import from the mirrored `tests/` tree, and the `_` signals "do not import from outside this file" — which a test then violates. So don't reflexively reach for `_` on an implementation class; ask "does anything outside this *file* (a sibling module, the package's factory, its tests) import it by name?" — if yes, it's package-private. The canonical case is **a seam's concrete adapter**: e.g. an aiocache-backed `Cache` implementation that consumers receive via DI *as the seam type* (so it is **not** public — no `__init__.py` export; consumers depend on the `Cache` Protocol, never the adapter), yet that the package's own factory and tests build directly by name (so it is **not** underscore-private either). Package-private — no underscore, not re-exported — is the correct tier.
 
 ## Style earns its keep — debuggability first (functions vs classes vs closures)
