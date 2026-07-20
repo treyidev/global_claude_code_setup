@@ -573,13 +573,15 @@ test a question, sitting evidence lands, or a verdict closes a spike. Never hand
 lifecycle (mirrors the `/create-story` rule above).
 
 Universal shape (the skill carries the procedure; project CLAUDE.md/ADRs refine): one
-spike = one question · **permanent `spike/<slug>` branch** — never merges to main, never
-deleted, no landing MR — pushed to all remotes · `main` gitignores `spikes/` (the spike
-branch's first commit removes the line) · a tracker story anchors the lifecycle · the
-verdict's ADR/decision record lands on main **via a short-lived `adr/<slug>` branch + MR
-carrying only decision artifacts** (branch deleted after merge — the ADR gets the MR, the
-spike never does), then the spike freezes. Adopted 2026-07-19/20 (byte-gazers
-ADR-0003/0008/0009).
+spike = one question · spikes live in the **shared `gz-spike` repo, submoduled at `spikes/`**
+in each parent (family-wide, durable — **no permanent `spike/*` branch, `spikes/` NOT
+gitignored**) · a `NNNN-<slug>/` dir per spike, numbered family-wide · work is committed **in
+the gz-spike submodule** then the gitlink is bumped in the parent (two-commit rule) · a tracker
+story (filed in the parent) anchors the lifecycle · the verdict lands as an **ADR in the parent**
+via `/adr-new` (short-lived `adr/<slug>` branch → MR, citing the gz-spike SHA), then the spike
+freezes in gz-spike. **Pivoted 2026-07-20 to the submodule model** — the earlier permanent-branch
+model (a `spike/<slug>` branch + gitignored `spikes/`, byte-gazers ADR-0003/0008/0009) is retired;
+gazers-universe records the topology in an ADR amending ADR-0020.
 
 ---
 
