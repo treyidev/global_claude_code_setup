@@ -49,11 +49,35 @@ Preserve all context for the next Claude Code session.
    - If uncommitted work exists, note in SESSION.md
    - Suggest: "Uncommitted changes exist. Commit before closing?"
 
-5. Confirm handoff:
+5. **Durability check — the handoff is not done until it is COMMITTED (never skip this).**
+   Writing the files is not persisting them. A tier file left staged-but-uncommitted looks
+   fine locally and is invisible to the next session; one `git checkout .`, or a fresh clone,
+   and the whole handoff is gone with no error and no signal.
+
+   Run `git status --short .claude/` and confirm every tier file you touched is either
+   committed or deliberately staged for a commit you are about to make. Then, after
+   committing, VERIFY with `git show --stat HEAD` that each one is actually in the commit —
+   do not assume `git add .claude/` caught them.
+
+   > **Real failure this encodes** (gazers-universe `be526ac`, 2026-08-04): this skill wrote
+   > SESSION.md, the sync commit that followed included TASKS.md + backlog.md but NOT
+   > SESSION.md, and the entire session-20 handoff survived only as a staged working-tree
+   > change that happened to travel across a later branch switch. `/resume` would have loaded
+   > the session-19 snapshot and presented it as current.
+
+   Two deterministic backstops exist, but neither replaces this step — both fire at `git push`,
+   which may be much later than the handoff, and only the first is global:
+   - `~/.claude/hooks/working_memory_sync_gate.py` — GLOBAL PreToolUse(Bash) hook; denies any
+     `git push` Claude issues while a tier file is dirty, in every project.
+   - a repo's own pre-push hook where one exists (e.g. gazers-universe's `working-memory-sync`
+     pre-commit hook) — also catches pushes a human types in a terminal.
+
+6. Confirm handoff:
    ```
    ✓ Handoff Complete
    ─────────────────────
    Session saved to .claude/SESSION.md
+   Committed:    [commit SHA, or "NOT YET — <what still needs committing>"]
 
    Next session: Run /resume
 

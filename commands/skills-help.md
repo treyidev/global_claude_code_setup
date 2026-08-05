@@ -63,14 +63,39 @@ catalog is worse than none).
 
 5. **If a skill name was passed:** skip the catalog; deep-dive that skill only — description,
    tier + shadowing status, model, all arguments, a summary of its steps, TWO realistic
-   examples, and its related skills (e.g. `/checkpoint` ↔ `/handoff` ↔ `/resume`). If the name
-   matches nothing, say so and list the closest matches.
+   examples, its related skills (e.g. `/checkpoint` ↔ `/handoff` ↔ `/resume`), and its
+   **backing enforcement** (step 6). If the name matches nothing, say so and list the closest
+   matches.
 
-6. **Scope note (print once, small):** plugin- and harness-provided skills (e.g. plugin review
+6. **Always surface the backing hooks — a skill is only half the mechanism.** Several skills
+   carry the *judgment* while a deterministic hook enforces the *floor* underneath them. A hook
+   is invisible in any listing of `commands/*.md`, so a catalog that omits it misrepresents how
+   the work is actually guaranteed — and the reader concludes a rule is merely remembered when
+   it is in fact enforced. Read `~/.claude/settings.json` (`.hooks`) **live**, never from memory,
+   and take each hook's description from the WHY block in its own source (`~/.claude/hooks/*.py`).
+
+   In the **grouped catalog**, add a short table after the last group:
+
+   ```text
+   ### Deterministic backstops (hooks — always on, never invoked)
+   | Hook | Event | Backs | What it guarantees |
+   |---|---|---|---|
+   | working_memory_sync_gate.py | PreToolUse(Bash) | /handoff · /checkpoint · /post-merge | denies `git push` while a .claude/ tier file is uncommitted, in every project |
+   | adr_ceremony_reminder.py | PreToolUse(Write\|Edit) | /adr-new · /adr-review | injects the ADR ceremony reminder on any graph-structural ADR edit |
+   | inject_lang_rule.py | PreToolUse(Write) | — | loads the path-scoped language rules for a brand-new file |
+   ```
+
+   In a **deep dive**, name only the hooks backing that skill and state the division plainly:
+   the hook guarantees the mechanical floor, the skill carries the judgment above it. Where a
+   hook exists because a real failure happened, cite it in one clause — that is what makes the
+   rule trusted rather than merely obeyed (e.g. the working-memory gate exists because
+   `be526ac` wrote a session handoff, staged it, and never committed it).
+
+7. **Scope note (print once, small):** plugin- and harness-provided skills (e.g. plugin review
    or research commands) are surfaced by the harness itself and are not files in these two
    directories — this catalog covers the skills YOU own and version.
 
-7. **ALWAYS end with the self-reference footer** — the catalog must advertise itself, so it is
+8. **ALWAYS end with the self-reference footer** — the catalog must advertise itself, so it is
    never forgotten:
 
    ```text

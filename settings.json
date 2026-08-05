@@ -27,6 +27,7 @@
       "Bash(sudo:*)"
     ]
   },
+  "model": "opus[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -57,6 +58,16 @@
             "command": "python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/adr_ceremony_reminder.py"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/hooks/working_memory_sync_gate.py",
+            "statusMessage": "Checking working-memory sync"
+          }
+        ]
       }
     ]
   },
@@ -76,6 +87,5 @@
   },
   "tui": "fullscreen",
   "switchModelsOnFlag": false,
-  "model": "opus[1m]",
   "effortLevel": "xhigh"
 }

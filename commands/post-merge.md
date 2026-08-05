@@ -60,6 +60,29 @@ encoding of that directive (the auto-memory copy is machine-local).
    > command (`git ls-remote <mirror> main` vs `git rev-parse main`) would have caught it
    > immediately.
 
-3. Apply the post-commit checkpoint judgment (global CLAUDE.md): if the merged unit's write-up
-   has not yet moved to `.claude/tasks/archive.md` per the three-tier protocol, flag it —
-   the move should have happened in the unit's own MR.
+3. **Reconcile the working-memory tiers — PERFORM the move, do not merely flag it.** The merged
+   unit shipped, so the three-tier protocol (global CLAUDE.md §"🗂️ Session continuity") owes:
+   - its write-up moved from `.claude/TASKS.md` to `.claude/tasks/archive.md`, leaving a
+     one-liner in TASKS.md only while its parent epic is still open;
+   - any open fragment embedded in that write-up (a deferred sub-item, a pending owner action,
+     a tracker issue that lives nowhere else) **lifted into `.claude/tasks/backlog.md`** with a
+     pointer back — archiving must never bury open work;
+   - `.claude/SESSION.md` updated so it no longer describes the MR as open.
+
+   The move itself is mechanical and you already know the merged branch, MR number, and SHA —
+   so do it, then present the result. Only the *content* of the write-up (which decisions
+   mattered, which fragments need lifting) is judgment, and that is what you show the owner.
+   Ideally this happened in the unit's own MR; when it did not, this is where it gets fixed.
+
+   > **Why this says PERFORM, not flag** (2026-08-05): the earlier wording was "flag it", so a
+   > merged unit's write-up sat un-archived until the owner asked what the next step was. A
+   > reminder that produces a question instead of a result puts two humans in the loop for a
+   > file move (owner directive: *mechanize to the reliability floor* — mechanics get zero
+   > hand-keying; only judgment stays a reviewed checkpoint).
+
+4. **Commit the tier changes, and verify they landed.** Working memory is durable only once
+   committed — `git show --stat HEAD` must list every tier file you touched. Respect the repo's
+   branch policy: where direct-to-main is forbidden, the sync rides a feature branch as its own
+   commit rather than getting a branch of its own. The global
+   `~/.claude/hooks/working_memory_sync_gate.py` gate will block the next `git push` if anything
+   is left uncommitted — but catching it here is cheaper than being stopped later.

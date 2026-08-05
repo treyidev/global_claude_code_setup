@@ -37,6 +37,15 @@ Invariants (non-negotiable, all projects):
   must never bury open work.
 - `/resume` in a project still on the old single-file TASKS.md format: **align it to this
   division first** (verbatim moves — procedure in the /resume skill) before continuing work.
+- **These files are durable only once COMMITTED — writing them is not persisting them.** A tier
+  file left staged-but-uncommitted looks fine locally and is invisible to the next session; one
+  `git checkout .` or a fresh clone and it is gone, with no error. After any sync, verify with
+  `git show --stat HEAD` that each touched tier file is actually in the commit. Enforced
+  deterministically by the GLOBAL `~/.claude/hooks/working_memory_sync_gate.py` hook, which denies
+  any `git push` while a tier file is uncommitted, in every project. *(Added 2026-08-05 after
+  gazers-universe `be526ac`: `/handoff` wrote SESSION.md, the sync commit included TASKS.md +
+  backlog.md but not SESSION.md, and a whole session's handoff survived only as a staged
+  working-tree change — `/resume` would have loaded the previous session's snapshot as current.)*
 - Restructuring these files, or this rule, requires explicit owner approval.
 
 WHY: TASKS.md is what loads every session — keeping it lean is the token + focus lever; archive
@@ -447,9 +456,11 @@ Full, language-specific standards live in path-scoped rule files that load **onl
 touch that language (see *Instruction architecture* above). Always-on cores — enough to keep a
 brand-new file honest before its rule triggers:
 
-- **Python** — `**/*.py` → `~/.claude/rules/python.md`. uv only (never pip); type hints =
-  builtin generics + `X | None`; Google docstrings; properties over getters; module/package/
-  public visibility tiers; AST over runtime metadata.
+- **Python** — `**/*.py` → `~/.claude/rules/python.md`. uv only (never pip); **interpreter =
+  `uv run python`, NEVER the global `python3` — no deviation, including `-c` one-liners in shell
+  pipelines: if a uv environment exists, use it**; type hints = builtin generics + `X | None`;
+  Google docstrings; properties over getters; module/package/public visibility tiers; AST over
+  runtime metadata.
 - **TypeScript** — `**/*.ts(x)`, `**/*.[mc]ts` → `~/.claude/rules/typescript.md`. Strict mode;
   no bare `any` (use `unknown` + narrow); finite string sets = **object-const enum** (`as const`
   + derived type, never raw literals or TS `enum`); validate external data at the boundary
@@ -520,6 +531,17 @@ Co-Authored-By: Claude  # NEVER add this
 ```
 
 → Full workflow: `~/.claude/reference/workflow.md`
+
+### 🚫 The merge is the HUMAN GATE — Claude NEVER merges (ALL projects & repos)
+
+**Merging an MR/PR is the owner's action, always.** Claude prepares the branch, opens the MR,
+reports gates green, and STOPS. Never `glab mr merge` / `gh pr merge` / any API or UI
+equivalent — on any target branch, in any repo, under any recipe wording. A pre-approved plan
+that says "→ MR → merge" means "open the MR; **the owner merges**" — approval to *author and
+open* is never approval to *merge*. This is the human review gate of the whole workflow;
+executing it autonomously voids the review the gate exists for. (Owner directive 2026-07-26,
+after Claude merged gazers-universe MR !60 itself.) After the **owner** has merged, `/post-merge`
+housekeeping proceeds as usual.
 
 ### Epic branching model (integration branch per epic) — ALL projects & repos
 

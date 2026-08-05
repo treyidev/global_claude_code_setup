@@ -116,6 +116,15 @@ absent update.
      activation trigger — never bare YAGNI).
    - If no tier's content changed, do not rewrite any of them.
 
+   **Whatever you write here is durable only once COMMITTED.** A checkpoint that leaves a tier
+   file staged-but-uncommitted has not saved anything the next session can read — it looks fine
+   locally and vanishes on a `git checkout .` or a fresh clone, with no error (this is the
+   `be526ac` failure: a handoff written, staged, never committed). A checkpoint mid-work
+   legitimately leaves them dirty, so this is a note rather than a gate — but the moment the
+   work is committed, verify with `git show --stat HEAD` that the tier files are in it. The
+   global `~/.claude/hooks/working_memory_sync_gate.py` hook is the deterministic backstop: it
+   denies any `git push` while a tier file is uncommitted, in every project.
+
 6. Confirm:
 
    **If updates were made**, run a focused self-check first: is the
