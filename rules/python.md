@@ -77,7 +77,7 @@ export:
 
 | Tier | Naming | In `__init__.py` re-exports? | When to use |
 | ---- | ------ | ---------------------------- | ----------- |
-| **Module-private** | `_Name` (leading underscore) | No | Used only within the defining module. The underscore signals "do not import from outside this file." |
+| **Module-private** | `_name` (leading underscore) — **functions / constants / variables only, never classes** | No | Used only within the defining module. The underscore signals "do not import from outside this file." Classes skip this tier entirely; see the directive below. |
 | **Package-private** | `Name` (no underscore) | No (NOT in `__init__.py`) | Used across modules in the same package; not part of the package's public API. Fine for sibling modules to import directly. |
 | **Public** | `Name` (no underscore) | Yes (in `__init__.py` `__all__` / re-exported) | Part of the package's public API. |
 
@@ -85,10 +85,32 @@ export:
 
 **Docstring convention** for package-private classes: lead with "Package-private contract for X" / "Package-private helper for X" and state explicitly "not re-exported from the package's `__init__.py`." This tells future readers (including future-you) that the class is intentionally not in the public surface.
 
+### Classes NEVER take a leading underscore — package-private is their floor (owner directive 2026-07-31)
+
+**A leading `_` is for module-level functions, constants and variables — never for a class, Protocol, dataclass or Exception.** A class's visibility is expressed by whether it appears in the package's `__init__.py`, not by its name. So the *lowest* tier a class occupies is **package-private**: no underscore, not re-exported.
+
+WHY: a class is the thing most likely to be imported by name from somewhere else — a sibling module, the package's own factory, and above all the mirrored `tests/` tree (see the tests-are-a-sibling-consumer rule below). An underscore-prefixed class either blocks that import or gets imported anyway, which normalises violating the convention and makes the `_` meaningless everywhere else. It also produces uglier tracebacks and awkward docs. Nothing is gained: "not exported from `__init__.py`" already says "internal", enforceably and in one place.
+
+This holds even for a class used only inside its defining module *today* — internal control-flow exceptions included. Today's single-module helper is tomorrow's tested unit, and renaming it later churns every call site for no benefit.
+
 ```python
-# Module-private — only this file uses it
-class _InternalCacheKey:
-    """Module-private cache key helper — do not import from sibling modules."""
+# ❌ WRONG — leading underscore on a class, whatever its scope
+class _StorageUnavailable(Exception): ...
+class _InternalCacheKey: ...
+
+# ✅ CORRECT — package-private: no underscore, simply absent from __init__.py
+class StorageUnavailable(Exception):
+    """Package-private signal that storage failed. Not re-exported from ``__init__.py``."""
+
+# ✅ Leading underscores remain correct for module-level functions/constants/variables
+_DIGEST_BYTES = 16
+def _normalise_scheme(url: str) -> str: ...
+```
+
+```python
+# Module-private helper *function* — the underscore tier that still applies
+def _internal_cache_key(user_id: str) -> str:
+    """Module-private key helper — do not import from sibling modules."""
 
 # Package-private — sibling modules in the same package may import; not public API
 class FeelTarget(Protocol):
@@ -104,7 +126,7 @@ class Feel(AnimationGroup):
     """Animated emotion transition. Public API."""
 ```
 
-**When picking**: default to module-private (`_X`). Promote to package-private (drop the underscore) when a sibling module needs to import it. Promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it.
+**When picking**: for a **class**, start at package-private (no underscore, not exported) — per the directive above, that is its floor — and promote to public (export from `__init__.py`) only when callers outside the package would reasonably need it. For a module-level **function, constant or variable**, default to module-private (`_x`) and drop the underscore when a sibling module needs it.
 
 ### `__init__.py` stays lean — the curated API surface, nothing else (owner directive 2026-07-15)
 
@@ -212,6 +234,26 @@ uv lock                           # Regenerate lockfile
 **Why**: uv's lockfile (`uv.lock`) ensures deterministic installs across machines. `pip install` operates outside uv's dependency graph, leading to version conflicts and missing transitive dependencies.
 
 **For path dependencies** (local packages in monorepo): Declare them in `pyproject.toml` and use `uv sync`.
+
+### Interpreter invocation — `uv run python`, never the global interpreter (no deviation)
+
+**If a uv environment exists, use it — invoke Python ONLY via `uv run python`.** This applies to
+every invocation, including throwaway `-c` one-liners inside shell pipelines (JSON parsing, quick
+transforms). The global `python3` is unmanaged — its version and site-packages are outside the
+project's lockfile, so behavior silently diverges from the project environment.
+
+```bash
+# ❌ WRONG - global interpreter, unmanaged version/env
+python3 -c "import json,sys; print(json.load(sys.stdin)['body'])"
+python3 scripts/check.py
+
+# ✅ CORRECT - project venv via uv, even for one-liners
+uv run python -c "import json,sys; print(json.load(sys.stdin)['body'])"
+uv run python scripts/check.py
+uv run --package gazers-core python -m pytest …   # workspace-member selection when relevant
+```
+
+(Owner directive 2026-07-23 — standing rule, all projects.)
 
 ## Gold-level docstring template (Google style)
 
