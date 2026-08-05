@@ -46,5 +46,8 @@ Counterpart of `/post-merge` (run that after the merge).
    `glab mr create --source-branch <b> --target-branch <t> --assignee "@me" --title … --description …`
    (GitHub: `gh pr create --assignee "@me" …`).
 
-5. **Report:** the MR URL, target, closes-ref, assignee — and the reminder that the merge is
-   followed by `/post-merge` (Sonnet-delegated housekeeping).
+5. **Report and STOP — the merge is the HUMAN GATE.** Report the MR URL, target, closes-ref,
+   assignee — then hand off. **Claude NEVER merges** (`glab mr merge` / `gh pr merge` / API/UI
+   equivalents) — no recipe wording ("→ MR → merge") overrides this; the owner merges (global
+   CLAUDE.md §Git Conventions, owner directive 2026-07-26). After the OWNER has merged, run
+   `/post-merge` (Sonnet-delegated housekeeping).
