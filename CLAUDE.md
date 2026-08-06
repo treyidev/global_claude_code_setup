@@ -46,6 +46,17 @@ Invariants (non-negotiable, all projects):
   gazers-universe `be526ac`: `/handoff` wrote SESSION.md, the sync commit included TASKS.md +
   backlog.md but not SESSION.md, and a whole session's handoff survived only as a staged
   working-tree change — `/resume` would have loaded the previous session's snapshot as current.)*
+- **Sync placement (owner rule 2026-08-06): tier-file updates commit DIRECTLY to a durable
+  designated branch and push — NEVER via an MR, and never left on an ephemeral feature
+  branch.** Designated = the repo's default branch (`main`) when no epic is in flight or the
+  recorded facts are already merged; the live epic's `integration/*` branch while its epic is
+  open — with `main`'s SESSION.md carrying a one-line pointer to that branch so a fresh
+  clone/`/resume` finds the live tiers. WHY: (1) GitLab auto-deletes source branches post-merge —
+  session state on an ephemeral branch can vanish with it; (2) sync MRs recurse (every handoff
+  MR spawned a session-update MR — the 2026-08-06 gazers-universe lesson, MRs !72/!73/!75).
+  This is a narrow tier-file exemption (`.claude/SESSION.md` · `.claude/TASKS.md` ·
+  `.claude/tasks/*` ONLY) to "never commit directly to main/integration" — code and docs still
+  go through MRs, no exceptions.
 - Restructuring these files, or this rule, requires explicit owner approval.
 
 WHY: TASKS.md is what loads every session — keeping it lean is the token + focus lever; archive

@@ -94,9 +94,14 @@ encoding of that directive (the auto-memory copy is machine-local).
    > file move (owner directive: *mechanize to the reliability floor* — mechanics get zero
    > hand-keying; only judgment stays a reviewed checkpoint).
 
-4. **Commit the tier changes, and verify they landed.** Working memory is durable only once
-   committed — `git show --stat HEAD` must list every tier file you touched. Respect the repo's
-   branch policy: where direct-to-main is forbidden, the sync rides a feature branch as its own
-   commit rather than getting a branch of its own. The global
-   `~/.claude/hooks/working_memory_sync_gate.py` gate will block the next `git push` if anything
-   is left uncommitted — but catching it here is cheaper than being stopped later.
+4. **Commit the tier changes DIRECTLY to the durable designated branch, push, and verify they
+   landed.** Working memory is durable only once committed — `git show --stat HEAD` must list
+   every tier file you touched. **Placement (owner rule 2026-08-06): tier syncs commit straight
+   to the designated branch — the repo's default branch when the recorded facts are merged
+   there / no epic is in flight, the live epic's `integration/*` branch otherwise (with a
+   one-line pointer in `main`'s SESSION.md) — and are pushed. NEVER open an MR for a session
+   sync, and never park session state on an ephemeral feature branch (GitLab auto-deletes those
+   post-merge).** This is a narrow tier-file-only exemption to the no-direct-commits rule —
+   code and docs still ride MRs. The global `~/.claude/hooks/working_memory_sync_gate.py` gate
+   will block the next `git push` if anything is left uncommitted — but catching it here is
+   cheaper than being stopped later.

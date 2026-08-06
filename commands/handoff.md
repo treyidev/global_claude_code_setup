@@ -63,6 +63,15 @@ Preserve all context for the next Claude Code session.
    fine locally and is invisible to the next session; one `git checkout .`, or a fresh clone,
    and the whole handoff is gone with no error and no signal.
 
+   > **Placement (owner rule 2026-08-06): commit tier files DIRECTLY to the durable
+   > designated branch and push — NEVER open an MR for a session sync.** Designated = the
+   > repo's default branch when no epic is in flight (or the recorded facts are already
+   > merged); the live epic's `integration/*` branch while its epic is open, with `main`'s
+   > SESSION.md carrying a one-line pointer to that branch. Never leave session state on an
+   > ephemeral feature branch — GitLab auto-deletes those post-merge, and sync MRs recurse
+   > (the gazers-universe handoff-recursion lesson). Canonical rule: global `~/.claude/CLAUDE.md`
+   > §"🗂️ Session continuity".
+
    Run `git status --short .claude/` and confirm every tier file you touched is either
    committed or deliberately staged for a commit you are about to make. Then, after
    committing, VERIFY with `git show --stat HEAD` that each one is actually in the commit —
