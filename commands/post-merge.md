@@ -60,8 +60,22 @@ encoding of that directive (the auto-memory copy is machine-local).
    > command (`git ls-remote <mirror> main` vs `git rev-parse main`) would have caught it
    > immediately.
 
-3. **Reconcile the working-memory tiers — PERFORM the move, do not merely flag it.** The merged
-   unit shipped, so the three-tier protocol (global CLAUDE.md §"🗂️ Session continuity") owes:
+3. **Reconcile the working-memory tiers — PERFORM the move, do not merely flag it.**
+
+   > **⛔ Sync-only MR taper (owner directive 2026-08-06 — the handoff-recursion bug).** If the
+   > merged MR's diff touched ONLY working-memory tier files (`.claude/SESSION.md`,
+   > `.claude/TASKS.md`, `.claude/tasks/*`) — i.e. it was itself a handoff/checkpoint sync —
+   > **steps 3 and 4 are SKIPPED entirely.** The merged content IS the reconciliation: there is
+   > no unit write-up to archive, and editing SESSION.md to record "that sync merged" would
+   > need a new commit → new MR → another post-merge — an unterminating meta-loop. (Proven in
+   > gazers-universe sessions 23–24: every handoff merge spawned another session-update MR,
+   > MRs !72/!73, preventing any clean handoff.) Steps 1–2 still run — branch cleanup and
+   > mirror sync are legitimate and non-recursive. Residual self-referential staleness (e.g. a
+   > next-step "owner: merge this handoff's MR", now done) is tolerated and folded into the
+   > NEXT content-bearing sync — never given a dedicated sync MR.
+
+   For a merged **work unit** (anything beyond tier files), the three-tier protocol (global
+   CLAUDE.md §"🗂️ Session continuity") owes:
    - its write-up moved from `.claude/TASKS.md` to `.claude/tasks/archive.md`, leaving a
      one-liner in TASKS.md only while its parent epic is still open;
    - any open fragment embedded in that write-up (a deferred sub-item, a pending owner action,

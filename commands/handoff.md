@@ -27,6 +27,15 @@ Preserve all context for the next Claude Code session.
    - **Files Touched**: Key files modified
    - **Key Decisions**: Important choices made
 
+   > **No self-invalidating references (owner directive 2026-08-06).** SESSION.md must never
+   > assert its *own carrier* (the branch/MR this very handoff rides) as live state, and must
+   > never list "owner: merge this handoff's MR" as a tracked next step — both go stale the
+   > instant the owner merges, and fixing the staleness would take another sync commit → MR →
+   > merge → another stale reference: the recursion that blocked clean handoffs in
+   > gazers-universe sessions 23–24 (MRs !72/!73). Write only merged, SHA-anchored facts;
+   > `git log -1` names the carrier if it ever matters. The complementary fix lives in
+   > `/post-merge` (its sync-only-MR taper skips tier reconciliation for handoff merges).
+
 2. Documentation Impact Check:
    - Did I add/remove/rename any public APIs?
    - Did I move files between packages?
