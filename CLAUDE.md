@@ -564,7 +564,10 @@ Multi-unit efforts use a **two-tier branch model**; genuinely standalone single-
 - **Unit of work ⇒ feature branch off the integration branch** (NOT off `main`), named by
   conventional type (`feat/<epic-slug>-<unit>`, `fix/<epic-slug>-<unit>`, …).
 - **Feature → integration via MR**, and only after review + validation. Never merge a feature branch
-  straight to `main`; never commit to the integration branch (or `main`) directly.
+  straight to `main`; never commit to the integration branch (or `main`) directly. **One narrow
+  exemption (owner rule 2026-08-06): working-memory tier files** (`.claude/SESSION.md` ·
+  `.claude/TASKS.md` · `.claude/tasks/*`) commit DIRECTLY to the durable designated branch —
+  see §"🗂️ Session continuity" *Sync placement*. Code and docs: no exceptions.
 - **Epic done ⇒ one MR merges the integration branch → `main`.** `main` only ever receives whole,
   proven epics — plus genuinely standalone single-unit work.
 - **No epic? Branch directly off `main`** as before — the integration tier exists only to keep
