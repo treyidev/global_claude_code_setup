@@ -53,6 +53,13 @@ Preserve all context for the next Claude Code session.
    - Shipped write-ups → `.claude/tasks/archive.md`; gated/deferred items →
      `.claude/tasks/backlog.md` (need + activation trigger preserved)
    - Ensure no DONE prose is left accumulating in TASKS.md
+   - **Obligation ledger, where the project has one** (`.claude/tasks/obligations.toml` —
+     gazers-universe issue #91): new cross-cutting owed items from this session (a tracker
+     note owed, a pending owner action, a cleanup promise) become ledger records with a
+     machine-evaluable close condition — prefer a declarative predicate; `honor` + reason
+     only when genuinely unmechanisable. Obligations closed this session: DELETE their
+     entries (the gate fails satisfied-but-present). Run the project's
+     `pnpm audit:obligations` (or the script directly) before committing the sync.
 
 4. Verify uncommitted changes:
    - If uncommitted work exists, note in SESSION.md

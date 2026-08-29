@@ -114,6 +114,12 @@ absent update.
    - Newly discovered work ⇒ `.claude/TASKS.md` if in-flight/approved;
      `.claude/tasks/backlog.md` if gated/deferred (record need +
      activation trigger — never bare YAGNI).
+   - **Obligation ledger, where the project has one** (`.claude/tasks/obligations.toml` —
+     gazers-universe issue #91): a new cross-cutting owed item (a tracker note owed, a
+     pending owner action, a cleanup promise) becomes a ledger record with a
+     machine-evaluable close condition (declarative predicate preferred; `honor` + reason
+     only when genuinely unmechanisable); a closed obligation's entry is DELETED in the
+     closing commit — the gate fails satisfied-but-present entries.
    - If no tier's content changed, do not rewrite any of them.
 
    **Whatever you write here is durable only once COMMITTED.** A checkpoint that leaves a tier
