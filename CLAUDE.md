@@ -57,6 +57,20 @@ Invariants (non-negotiable, all projects):
   This is a narrow tier-file exemption (`.claude/SESSION.md` · `.claude/TASKS.md` ·
   `.claude/tasks/*` ONLY) to "never commit directly to main/integration" — code and docs still
   go through MRs, no exceptions.
+- **A gate shipped in halves gets its unarmed half an obligation entry AT SHIP TIME.** When
+  capture ships now and enforcement later (a hash/stamp file whose checker is deferred, a lint
+  rule designed but unbuilt, a metric recorded that nothing reads), the gap emits **false
+  green** — the mechanism looks live while checking nothing, which is worse than no gate
+  because it manufactures confidence. Two duties, both mandatory: (1) record the unarmed half
+  as an obligation with a due date or trigger (in the project's obligation ledger where one
+  exists — e.g. gazers-universe `.claude/tasks/obligations.toml` — else the PENDING tier);
+  (2) whenever an enforcement gap is *noted*, **measure the exposure behind it** — a gap
+  known qualitatively but unmeasured cannot compete for priority and starves in the queue
+  forever. *(Added 2026-08-30 after the gazers-universe stamp-sidecar RCA: ADR-0041 MR 1
+  shipped hash capture 2026-07-16 with the L8 staleness check deferred to MR 2; six weeks
+  later 0/150 stamps matched the corpus and 61/211 edges were never stamped, while
+  `adr-graph lint` printed "0 errors" throughout — the gap was even re-verified qualitatively
+  mid-way, session 55, yet nobody computed the number until the owner forced it.)*
 - Restructuring these files, or this rule, requires explicit owner approval.
 
 WHY: TASKS.md is what loads every session — keeping it lean is the token + focus lever; archive
